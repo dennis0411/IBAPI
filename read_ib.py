@@ -16,8 +16,6 @@ np.set_printoptions(linewidth=desired_width)
 pd.set_option('display.max_columns', 20)
 
 # 取消 future warning
-
-
 simplefilter(action='ignore', category=FutureWarning)
 
 # 引入密碼
@@ -34,14 +32,28 @@ client = MongoClient(CONNECTION_STRING, tls=True, tlsAllowInvalidCertificates=Tr
 db = client.getdata
 collection = db.ib
 
-download_date = '2022/04/06'
 
-account_data = collection.find_one({'$and': [{'date': download_date}, {'tag': "AccountSummary"}]})
-AccountSummary = pd.DataFrame(account_data['data'])
-AccountSummary = AccountSummary.dropna()
-print(AccountSummary)
+def read_AccountSummary(download_date):
+    df = collection.find({'$and': [{'date': download_date}, {'tag': "AccountSummary"}]})
+    AccountSummary = pd.DataFrame()
+    for account_data in df:
+        data = pd.DataFrame(account_data['data'])
+        AccountSummary = pd.concat([AccountSummary, data], axis=0, ignore_index=True)
+    return AccountSummary
 
-portfolio_data = collection.find_one({'$and': [{'date': download_date}, {'tag': "Portfolio"}]})
-Portfolio = pd.DataFrame(portfolio_data['data'])
-Portfolio = Portfolio.dropna()
-print(Portfolio)
+
+def read_Portfolio(download_date):
+    df = collection.find({'$and': [{'date': download_date}, {'tag': "Portfolio"}]})
+    Portfolio = pd.DataFrame()
+    for account_data in df:
+        data = pd.DataFrame(account_data['data'])
+        Portfolio = pd.concat([Portfolio, data], axis=0, ignore_index=True)
+    return Portfolio
+
+
+if __name__ == "__main__":
+    download_date = '2022/04/06'
+    a = read_AccountSummary(download_date)
+    b = read_Portfolio(download_date)
+    print(a)
+    print(b)
