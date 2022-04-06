@@ -11,6 +11,7 @@ import numpy as np
 from pymongo import MongoClient
 from warnings import simplefilter
 import json
+import random
 import sys
 
 # 列印用
@@ -57,7 +58,7 @@ class AccountSummary(EClient, EWrapper):
         EClient.__init__(self, self)
         self.reqId = 9002
         self.group = "All"
-        self.tag = "NetLiquidation"
+        self.tag = "NetLiquidation, TotalCashValue"
         self.accsum = []
 
     def nextValidId(self, orderId: int):
@@ -83,8 +84,7 @@ def downloadAccountSummary():
     app.connect("127.0.0.1", 7496, 123)
     app.run()
     data = pd.DataFrame(app.accsum, columns=columns)
-    accsum = data.set_index('Account').sort_index()
-    return accsum
+    return data
 
 
 # 投資組合
@@ -129,11 +129,10 @@ def downloadPortfolio(list):
         app.connect("127.0.0.1", 7496, 123)
         app.run()
         newdata = pd.DataFrame(app.portfolio, columns=columns)
-        data = pd.concat([data, newdata])
+        data = pd.concat([data, newdata], axis=0, ignore_index=True)
     print(f'managedAcct : {list}')
     print('download complete')
-    ibportfolio = data.set_index('Account').sort_index()
-    return ibportfolio
+    return data
 
 
 # 模型部位
@@ -176,31 +175,30 @@ def downloadPortfolio(list):
 
 
 def write_ib(AccountSummary, Portfolio):
+    number = random.randint(1, 99)
     start = time.time()
     db = client.getdata
     collection = db.ib
     data_account = json.loads(AccountSummary.to_json())  # 到底為何要這樣處理??
     collection.insert_one(
-        {'tag': 'AccountSummary', 'date': datetime.date.today().strftime("%Y/%m/%d"), 'data': data_account})
+        {'number': number, 'tag': 'AccountSummary', 'date': datetime.date.today().strftime("%Y/%m/%d"),
+         'data': data_account})
     data_portfolio = json.loads(Portfolio.to_json())  # 到底為何要這樣處理??
     collection.insert_one(
-        {'tag': 'Portfolio', 'date': datetime.date.today().strftime("%Y/%m/%d"), 'data': data_portfolio})
+        {'number': number, 'tag': 'Portfolio', 'date': datetime.date.today().strftime("%Y/%m/%d"),
+         'data': data_portfolio})
     end = time.time()
-    print(f'write_bb total time: {end - start} seconds')
+    print(f'write_ib {number} total time: {end - start} seconds')
 
 
 if __name__ == "__main__":
-    # 引入密碼
-    path = "mongodb_password"
-    with open(path) as f:
-        word = f.readline().split(',')
-        account = word[0]
-        password = word[1]
+
 
     # mongodb connection
-    CONNECTION_STRING = f"mongodb+srv://{account}:{password}@getdata.dzc20.mongodb.net/getdata?retryWrites=true&w=majority"
+    CONNECTION_STRING = "mongodb+srv://dennis0411:0939856005@getdata.dzc20.mongodb.net/getdata?retryWrites=true&w=majority"
     client = MongoClient(CONNECTION_STRING, tls=True, tlsAllowInvalidCertificates=True)
     list = downloadlist()[:]
     AccountSummary = downloadAccountSummary()
     Portfolio = downloadPortfolio(list)
+    print(AccountSummary, Portfolio)
     write_ib(AccountSummary, Portfolio)
