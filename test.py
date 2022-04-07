@@ -51,9 +51,8 @@ def read_Portfolio(download_date):
 
 
 def ib_data_process(download_date):
-    AccountSummary = read_AccountSummary(download_date)
-    AccountSummary = AccountSummary.pivot(index="Account", columns="tag",
-                                          values='value')
+    AccountSummary = read_AccountSummary(download_date).pivot(index="Account", columns="tag",
+                                                              values='value')
 
     Portfolio = read_Portfolio(download_date)
 
@@ -94,7 +93,12 @@ if __name__ == "__main__":
     collection = db.ib
     db_date = collection.distinct("date")
     download_date = db_date[-10:]
-    for date in download_date:
-        data = {date: ib_data_process(date)}
+    data = pd.DataFrame()
 
-    print(data['data'])
+    for date in download_date:
+        df = ib_data_process(date)["AccountSummary"].reset_index()
+        df["Date"] = date
+        data = pd.concat([data, df])
+
+    print(data)
+

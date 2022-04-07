@@ -91,11 +91,20 @@ CONNECTION_STRING = f"mongodb+srv://{account}:{password}@getdata.dzc20.mongodb.n
 client = MongoClient(CONNECTION_STRING, tls=True, tlsAllowInvalidCertificates=True)
 db = client.getdata
 collection = db.ib
+db_date = collection.distinct("date")
+download_date = db_date[-10:]
 
-download_date = '2022/04/06'
-data = ib_data_process(download_date)
-AccountSummary = data["AccountSummary"].reset_index()
-Portfolio_BOND = data["Portfolio_BOND"].reset_index()
+
+
+for date in download_date:
+    data = {date: ib_data_process(date)}
+
+
+AccountSummary = data[db_date[-1]]["AccountSummary"].reset_index()
+Portfolio_BOND = data[db_date[-1]]["Portfolio_BOND"].reset_index()
+
+
+
 
 # make app
 app = dash.Dash()
@@ -170,7 +179,7 @@ def update_graphs(rows, derived_virtual_selected_rows):
 
     return [
         dcc.Graph(
-            id="Account Position",
+            id="Position",
             figure={
                 "data": [
                     {
@@ -215,36 +224,29 @@ def update_graphs(rows, derived_virtual_selected_rows):
 
     dff = Portfolio_BOND if rows is None else pd.DataFrame(rows)
 
-    colors = ['#7FDBFF' if i in derived_virtual_selected_rows else '#0074D9'
-              for i in range(len(dff))]
-
     return [
         dcc.Graph(
-            id=column,
+            id="Position",
             figure={
                 "data": [
                     {
-                        "x": dff["Account"],
-                        "y": dff[column],
-                        "type": "bar",
-                        "marker": {"color": colors},
+                        "values": [dff["TotalCashValue"].astype(float).sum(), dff["StockValue"].sum(),
+                                   dff["BondValue"].sum()],
+                        "labels": ["TotalCashValue", "StockValue", "BondValue"],
+                        "type": "pie",
+                        "textinfo": 'percent+label',
+                        "textposition": 'outside',
+                        "marker": {"colors": ['#CCCCCC', '#38A67C', '#006FA6']},
+                        "insidetextfont": {"size": 12},
                     }
                 ],
                 "layout": {
-                    "xaxis": {"automargin": True},
-                    "yaxis": {
-                        "automargin": True,
-                        "title": {"text": column}
-                    },
-                    "height": 250,
-                    "margin": {"t": 10, "l": 10, "r": 10},
+                    "height": 400,
+                    "margin": {"t": 50, "l": 50, "r": 50},
+                    "width": 800,
                 },
             },
         )
-        # check if column exists - user may have deleted it
-        # If `column.deletable=False`, then you don't
-        # need to do this check.
-        for column in ["marketValue", "unrealizedPNL"]
     ]
 
 
