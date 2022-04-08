@@ -39,21 +39,9 @@ def read_AccountSummary(download_date):
     for account_data in df:
         data = pd.DataFrame(account_data['data'])
         AccountSummary = pd.concat([AccountSummary, data], axis=0, ignore_index=True)
-    return AccountSummary
 
-
-def read_Portfolio(download_date):
-    df = collection.find({'$and': [{'date': download_date}, {'tag': "Portfolio"}]})
-    Portfolio = pd.DataFrame()
-    for account_data in df:
-        data = pd.DataFrame(account_data['data'])
-        Portfolio = pd.concat([Portfolio, data], axis=0, ignore_index=True)
-    return Portfolio
-
-
-def ib_data_process(download_date):
-    AccountSummary = read_AccountSummary(download_date).pivot(index="Account", columns="tag",
-                                                              values='value')
+    AccountSummary = AccountSummary.pivot(index="Account", columns="tag",
+                                          values='value')
 
     Portfolio = read_Portfolio(download_date)
 
@@ -66,6 +54,22 @@ def ib_data_process(download_date):
                         }
         for filt in secType_filt.keys():
             AccountSummary.loc[account, filt] = Portfolio[secType_filt.get(filt)]['marketValue'].sum()
+    AccountSummary["Date"] = download_date
+    return AccountSummary
+
+
+def read_Portfolio(download_date):
+    df = collection.find({'$and': [{'date': download_date}, {'tag': "Portfolio"}]})
+    Portfolio = pd.DataFrame()
+    for account_data in df:
+        data = pd.DataFrame(account_data['data'])
+        Portfolio = pd.concat([Portfolio, data], axis=0, ignore_index=True)
+
+    return Portfolio
+
+
+def Porfolio_list(download_date):
+    Portfolio = read_Portfolio(download_date)
 
     # 投資組合資產分類
     Portfolio_STK = Portfolio[Portfolio["secType"] == "STK"][[
@@ -78,12 +82,20 @@ def ib_data_process(download_date):
     Portfolio_FUT = Portfolio[Portfolio["secType"] == "FUT"][[
         'Account', 'symbol', 'lastTradeDate', 'position', 'marketPrice', 'marketValue', 'averageCost', 'unrealizedPNL']]
 
-    data_dict = {"AccountSummary": AccountSummary,
-                 "Portfolio_STK": Portfolio_STK,
-                 "Portfolio_BOND": Portfolio_BOND,
-                 "Portfolio_OPT": Portfolio_OPT,
-                 "Portfolio_FUT": Portfolio_FUT}
-    return data_dict
+    Portfolio_list = {'Portfolio_STK': Portfolio_STK,
+                      'Portfolio_BOND': Portfolio_BOND,
+                      'Portfolio_OPT': Portfolio_OPT,
+                      'Portfolio_FUT': Portfolio_FUT}
+
+    return Portfolio_list
+
+
+def read_all_AccountSummary(download_date_list):
+    AccountSummary = pd.DataFrame()
+    for download_date in download_date_list:
+        AccountSummary = pd.concat([read_AccountSummary(download_date).reset_index(), AccountSummary], axis=0,
+                                   ignore_index=True)
+    return AccountSummary
 
 
 # mongodb connection
@@ -92,22 +104,24 @@ client = MongoClient(CONNECTION_STRING, tls=True, tlsAllowInvalidCertificates=Tr
 db = client.getdata
 collection = db.ib
 db_date = collection.distinct("date")
-download_date = db_date[-10:]
+download_date_list = db_date[-10:]
 
-
-
-for date in download_date:
-    data = {date: ib_data_process(date)}
-
-
-AccountSummary = data[db_date[-1]]["AccountSummary"].reset_index()
-Portfolio_BOND = data[db_date[-1]]["Portfolio_BOND"].reset_index()
-
+check_AccountSummary = read_AccountSummary(download_date_list[-1])
+check_Portfolio_STK = Porfolio_list(download_date_list[-1])["Portfolio_STK"]
+check_Portfolio_BOND = Porfolio_list(download_date_list[-1])["Portfolio_BOND"]
+check_Portfolio_OPT = Porfolio_list(download_date_list[-1])["Portfolio_OPT"]
+check_Portfolio_FUT = Porfolio_list(download_date_list[-1])["Portfolio_FUT"]
 
 
 
 # make app
 app = dash.Dash()
+
+Account_Page_Size = len(check_AccountSummary.index)
+Portfolio_STK_Page_Size = len(check_Portfolio_STK.index)
+Portfolio_BOND_Page_Size = len(check_Portfolio_BOND.index)
+Portfolio_OPT_Page_Size = len(check_Portfolio_OPT.index)
+Portfolio_FUT_Page_Size = len(check_Portfolio_FUT.index)
 
 app.layout = html.Div([
     dash_table.DataTable(
@@ -115,8 +129,8 @@ app.layout = html.Div([
         columns=[
             {"name": i, "id": i, "deletable": False, "selectable": True, "type": 'numeric',
              "format": Format(precision=2, scheme=Scheme.fixed)} for i in
-            AccountSummary.columns],
-        data=AccountSummary.to_dict('records'),
+            read_all_AccountSummary(download_date_list).columns],
+        data=read_all_AccountSummary(download_date_list).to_dict('records'),
         editable=True,
         filter_action="native",
         sort_action="native",
@@ -128,7 +142,7 @@ app.layout = html.Div([
         selected_rows=[],
         page_action="native",
         page_current=0,
-        page_size=50,
+        page_size=Account_Page_Size,
     ),
     html.Div(id='account-datatable-interactivity-container'),
     dash_table.DataTable(
@@ -136,8 +150,8 @@ app.layout = html.Div([
         columns=[
             {"name": i, "id": i, "deletable": False, "selectable": True, "type": 'numeric',
              "format": Format(precision=2, scheme=Scheme.fixed)} for i in
-            Portfolio_BOND.columns],
-        data=Portfolio_BOND.to_dict('records'),
+            Porfolio_list(download_date_list[-1])["Portfolio_BOND"].columns],
+        data=Porfolio_list(download_date_list[-1])["Portfolio_BOND"].to_dict('records'),
         editable=True,
         filter_action="native",
         sort_action="native",
@@ -175,32 +189,37 @@ def update_graphs(rows, derived_virtual_selected_rows):
     if derived_virtual_selected_rows is None:
         derived_virtual_selected_rows = []
 
-    dff = AccountSummary if rows is None else pd.DataFrame(rows)
+    dff = read_all_AccountSummary(download_date_list) if rows is None else pd.DataFrame(rows)
 
-    return [
-        dcc.Graph(
-            id="Position",
-            figure={
-                "data": [
-                    {
-                        "values": [dff["TotalCashValue"].astype(float).sum(), dff["StockValue"].sum(),
-                                   dff["BondValue"].sum()],
-                        "labels": ["TotalCashValue", "StockValue", "BondValue"],
-                        "type": "pie",
-                        "textinfo": 'percent+label',
-                        "textposition": 'outside',
-                        "marker": {"colors": ['#CCCCCC', '#38A67C', '#006FA6']},
-                        "insidetextfont": {"size": 12},
-                    }
-                ],
-                "layout": {
-                    "height": 400,
-                    "margin": {"t": 50, "l": 50, "r": 50},
-                    "width": 800,
+    dfff = pd.DataFrame()
+    for date in download_date_list:
+        for columns in ["NetLiquidation", "TotalCashValue", "StockValue", "BondValue"]:
+            dfff.loc[date, columns] = dff[dff["Date"] == date][columns].astype(float).sum()
+
+    return html.Div(
+        [
+            dcc.Graph(
+                id=column,
+                figure={
+                    "data": [
+                        {
+                            "x": download_date_list,
+                            "y": dfff[column],
+                            "type": "scatter+line",
+                            "marker": {"color": "#0074D9"},
+                        }
+                    ],
+                    "layout": {
+                        "xaxis": {"automargin": True},
+                        "yaxis": {"automargin": True},
+                        "height": 250,
+                        "margin": {"t": 10, "l": 10, "r": 10},
+                    },
                 },
-            },
-        )
-    ]
+            )
+            for column in ["NetLiquidation", "TotalCashValue", "StockValue", "BondValue"]
+        ]
+    )
 
 
 @app.callback(
