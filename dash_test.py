@@ -1,6 +1,5 @@
 import dash
-from dash import dcc
-from dash import Dash, html, dash_table
+from dash import Dash, html, dash_table, dcc
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output
 from pymongo import MongoClient
@@ -112,61 +111,76 @@ check_Portfolio_BOND = Porfolio_list(download_date_list[-1])["Portfolio_BOND"]
 check_Portfolio_OPT = Porfolio_list(download_date_list[-1])["Portfolio_OPT"]
 check_Portfolio_FUT = Porfolio_list(download_date_list[-1])["Portfolio_FUT"]
 
-
-
-# make app
-app = dash.Dash()
-
 Account_Page_Size = len(check_AccountSummary.index)
 Portfolio_STK_Page_Size = len(check_Portfolio_STK.index)
 Portfolio_BOND_Page_Size = len(check_Portfolio_BOND.index)
 Portfolio_OPT_Page_Size = len(check_Portfolio_OPT.index)
 Portfolio_FUT_Page_Size = len(check_Portfolio_FUT.index)
 
-app.layout = html.Div([
-    dash_table.DataTable(
-        id='account-datatable-interactivity',
-        columns=[
-            {"name": i, "id": i, "deletable": False, "selectable": True, "type": 'numeric',
-             "format": Format(precision=2, scheme=Scheme.fixed)} for i in
-            read_all_AccountSummary(download_date_list).columns],
-        data=read_all_AccountSummary(download_date_list).to_dict('records'),
-        editable=True,
-        filter_action="native",
-        sort_action="native",
-        sort_mode="multi",
-        column_selectable="single",
-        row_selectable="multi",
-        row_deletable=False,
-        selected_columns=[],
-        selected_rows=[],
-        page_action="native",
-        page_current=0,
-        page_size=Account_Page_Size,
-    ),
-    html.Div(id='account-datatable-interactivity-container'),
-    dash_table.DataTable(
-        id='portfolio-datatable-interactivity',
-        columns=[
-            {"name": i, "id": i, "deletable": False, "selectable": True, "type": 'numeric',
-             "format": Format(precision=2, scheme=Scheme.fixed)} for i in
-            Porfolio_list(download_date_list[-1])["Portfolio_BOND"].columns],
-        data=Porfolio_list(download_date_list[-1])["Portfolio_BOND"].to_dict('records'),
-        editable=True,
-        filter_action="native",
-        sort_action="native",
-        sort_mode="multi",
-        column_selectable="single",
-        row_selectable="multi",
-        row_deletable=False,
-        selected_columns=[],
-        selected_rows=[],
-        page_action="native",
-        page_current=0,
-        page_size=50,
-    ),
-    html.Div(id='portfolio-datatable-interactivity-container')
-])
+
+# make app
+app = dash.Dash()
+
+
+app.layout = html.Div(
+    children =[
+    # html.Div([
+        html.Div(
+            dash_table.DataTable(
+                id='account-datatable-interactivity',
+                columns=[
+                    {"name": i, "id": i, "deletable": False, "selectable": True, "type": 'numeric',
+                     "format": Format(precision=2, scheme=Scheme.fixed)} for i in
+                    read_all_AccountSummary(download_date_list).columns],
+                data=read_all_AccountSummary(download_date_list).to_dict('records'),
+                editable=False,
+                filter_action="native",
+                sort_action="native",
+                sort_mode="multi",
+                column_selectable="single",
+                row_selectable="multi",
+                row_deletable=False,
+                selected_columns=[],
+                selected_rows=[],
+                page_action="native",
+                page_current=0,
+                page_size=Account_Page_Size
+            ),
+            style={"width": 100, 'overflowY': 'scroll'}
+        ),
+        html.Div(
+            id='account-datatable-interactivity-container',
+            style={"width": 100}
+        )
+    ]
+)
+    # ),
+    # html.Div([
+    #     dash_table.DataTable(
+    #         id='portfolio-datatable-interactivity',
+    #         columns=[
+    #             {"name": i, "id": i, "deletable": False, "selectable": True, "type": 'numeric',
+    #              "format": Format(precision=2, scheme=Scheme.fixed)} for i in
+    #             Porfolio_list(download_date_list[-1])["Portfolio_BOND"].columns],
+    #         data=Porfolio_list(download_date_list[-1])["Portfolio_BOND"].to_dict('records'),
+    #         editable=True,
+    #         filter_action="native",
+    #         sort_action="native",
+    #         sort_mode="multi",
+    #         column_selectable="single",
+    #         row_selectable="multi",
+    #         row_deletable=False,
+    #         selected_columns=[],
+    #         selected_rows=[],
+    #         page_action="native",
+    #         page_current=0,
+    #         page_size=50,
+    #     ),
+    #     html.Div(
+    #         id='portfolio-datatable-interactivity-container'
+    #     )
+    # ])]
+
 
 
 @app.callback(
@@ -213,7 +227,9 @@ def update_graphs(rows, derived_virtual_selected_rows):
                         "xaxis": {"automargin": True},
                         "yaxis": {"automargin": True},
                         "height": 250,
-                        "margin": {"t": 10, "l": 10, "r": 10},
+                        'width': 500,
+                        "title": column,
+                        "margin": {"t": 50, "l": 10, "r": 10},
                     },
                 },
             )
@@ -222,51 +238,51 @@ def update_graphs(rows, derived_virtual_selected_rows):
     )
 
 
-@app.callback(
-    Output('portfolio-datatable-interactivity', 'style_data_conditional'),
-    Input('portfolio-datatable-interactivity', 'selected_columns')
-)
-def update_styles(selected_columns):
-    return [{
-        'if': {'column_id': i},
-        'background_color': '#D2F3FF'
-    } for i in selected_columns]
-
-
-@app.callback(
-    Output('portfolio-datatable-interactivity-container', "children"),
-    Input('portfolio-datatable-interactivity', "derived_virtual_data"),
-    Input('portfolio-datatable-interactivity', "derived_virtual_selected_rows"))
-def update_graphs(rows, derived_virtual_selected_rows):
-    if derived_virtual_selected_rows is None:
-        derived_virtual_selected_rows = []
-
-    dff = Portfolio_BOND if rows is None else pd.DataFrame(rows)
-
-    return [
-        dcc.Graph(
-            id="Position",
-            figure={
-                "data": [
-                    {
-                        "values": [dff["TotalCashValue"].astype(float).sum(), dff["StockValue"].sum(),
-                                   dff["BondValue"].sum()],
-                        "labels": ["TotalCashValue", "StockValue", "BondValue"],
-                        "type": "pie",
-                        "textinfo": 'percent+label',
-                        "textposition": 'outside',
-                        "marker": {"colors": ['#CCCCCC', '#38A67C', '#006FA6']},
-                        "insidetextfont": {"size": 12},
-                    }
-                ],
-                "layout": {
-                    "height": 400,
-                    "margin": {"t": 50, "l": 50, "r": 50},
-                    "width": 800,
-                },
-            },
-        )
-    ]
+# @app.callback(
+#     Output('portfolio-datatable-interactivity', 'style_data_conditional'),
+#     Input('portfolio-datatable-interactivity', 'selected_columns')
+# )
+# def update_styles(selected_columns):
+#     return [{
+#         'if': {'column_id': i},
+#         'background_color': '#D2F3FF'
+#     } for i in selected_columns]
+#
+#
+# @app.callback(
+#     Output('portfolio-datatable-interactivity-container', "children"),
+#     Input('portfolio-datatable-interactivity', "derived_virtual_data"),
+#     Input('portfolio-datatable-interactivity', "derived_virtual_selected_rows"))
+# def update_graphs(rows, derived_virtual_selected_rows):
+#     if derived_virtual_selected_rows is None:
+#         derived_virtual_selected_rows = []
+#
+#     dff = Portfolio_BOND if rows is None else pd.DataFrame(rows)
+#
+#     return [
+#         dcc.Graph(
+#             id="Position",
+#             figure={
+#                 "data": [
+#                     {
+#                         "values": [dff["TotalCashValue"].astype(float).sum(), dff["StockValue"].sum(),
+#                                    dff["BondValue"].sum()],
+#                         "labels": ["TotalCashValue", "StockValue", "BondValue"],
+#                         "type": "pie",
+#                         "textinfo": 'percent+label',
+#                         "textposition": 'outside',
+#                         "marker": {"colors": ['#CCCCCC', '#38A67C', '#006FA6']},
+#                         "insidetextfont": {"size": 12},
+#                     }
+#                 ],
+#                 "layout": {
+#                     "height": 400,
+#                     "margin": {"t": 50, "l": 50, "r": 50},
+#                     "width": 800,
+#                 },
+#             },
+#         )
+#     ]
 
 
 if __name__ == "__main__":
