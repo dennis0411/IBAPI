@@ -146,11 +146,11 @@ app.layout = html.Div(
                 page_current=0,
                 page_size=Account_Page_Size
             ),
-            style={"width": 100, 'overflowY': 'scroll'}
+            style={"width": 1500, 'overflowY': 'scroll'}
         ),
         html.Div(
             id='account-datatable-interactivity-container',
-            style={"width": 100}
+            style={"width": 1200}
         )
     ]
 )
@@ -226,8 +226,8 @@ def update_graphs(rows, derived_virtual_selected_rows):
                     "layout": {
                         "xaxis": {"automargin": True},
                         "yaxis": {"automargin": True},
-                        "height": 250,
-                        'width': 500,
+                        "height": 300,
+                        'width': 1000,
                         "title": column,
                         "margin": {"t": 50, "l": 10, "r": 10},
                     },
