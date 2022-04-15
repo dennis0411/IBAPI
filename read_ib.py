@@ -51,9 +51,50 @@ def read_Portfolio(download_date):
     return Portfolio
 
 
+def Read_Portfolio(download_date_list):
+    Portfolio = pd.DataFrame()
+    for download_date in download_date_list:
+        df = collection.find({'$and': [{'date': download_date}, {'tag': "Portfolio"}]})
+        for account_data in df:
+            data = pd.DataFrame(account_data['data'])
+            data['Date'] = download_date
+            Portfolio = pd.concat([Portfolio, data], axis=0, ignore_index=True)
+    return Portfolio
+
+
+def Porfolio_list(download_date_list):
+    Portfolio = Read_Portfolio(download_date_list)
+
+    # 投資組合資產分類
+    Portfolio_STK = Portfolio[Portfolio["secType"] == "STK"][[
+        'Date', 'Account', 'symbol', 'position', 'marketPrice', 'marketValue', 'averageCost', 'unrealizedPNL']]
+    Portfolio_BOND = Portfolio[Portfolio["secType"] == "BOND"][[
+        'Date', 'Account', 'symbol', 'lastTradeDate', 'position', 'marketPrice', 'marketValue', 'averageCost',
+        'unrealizedPNL']]
+    Portfolio_OPT = Portfolio[Portfolio["secType"] == "OPT"][[
+        'Date', 'Account', 'symbol', 'right', 'strike', 'lastTradeDate', 'position', 'marketPrice', 'marketValue',
+        'averageCost', 'unrealizedPNL']]
+    Portfolio_FUT = Portfolio[Portfolio["secType"] == "FUT"][[
+        'Date', 'Account', 'symbol', 'lastTradeDate', 'position', 'marketPrice', 'marketValue', 'averageCost',
+        'unrealizedPNL']]
+
+    Portfolio_list = {'Portfolio_STK': Portfolio_STK,
+                      'Portfolio_BOND': Portfolio_BOND,
+                      'Portfolio_OPT': Portfolio_OPT,
+                      'Portfolio_FUT': Portfolio_FUT}
+
+    return Portfolio_list
+
+
 if __name__ == "__main__":
     download_date = '2022/04/06'
     a = read_AccountSummary(download_date)
-    b = read_Portfolio(download_date)
-    print(a)
-    print(b)
+    db_date = collection.distinct("date")
+    download_date_list = db_date[-10:]
+
+    Portfolio_STK = Porfolio_list(download_date_list)["Portfolio_STK"]
+    Portfolio_BOND = Porfolio_list(download_date_list)["Portfolio_BOND"]
+    Portfolio_OPT = Porfolio_list(download_date_list)["Portfolio_OPT"]
+    Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
+    print(Read_Portfolio(download_date_list))
+    print(Portfolio_STK)

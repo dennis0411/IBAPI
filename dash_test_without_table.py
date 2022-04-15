@@ -64,23 +64,35 @@ def read_Portfolio(download_date):
     for account_data in df:
         data = pd.DataFrame(account_data['data'])
         Portfolio = pd.concat([Portfolio, data], axis=0, ignore_index=True)
-
     return Portfolio
 
 
-def Porfolio_list(download_date):
-    Portfolio = read_Portfolio(download_date)
+def Read_Portfolio(download_date_list):
+    Portfolio = pd.DataFrame()
+    for download_date in download_date_list:
+        df = collection.find({'$and': [{'date': download_date}, {'tag': "Portfolio"}]})
+        for account_data in df:
+            data = pd.DataFrame(account_data['data'])
+            data['Date'] = download_date
+            Portfolio = pd.concat([Portfolio, data], axis=0, ignore_index=True)
+    return Portfolio
+
+
+def Porfolio_list(download_date_list):
+    Portfolio = Read_Portfolio(download_date_list)
 
     # 投資組合資產分類
     Portfolio_STK = Portfolio[Portfolio["secType"] == "STK"][[
-        'Account', 'symbol', 'position', 'marketPrice', 'marketValue', 'averageCost', 'unrealizedPNL']]
+        'Date', 'Account', 'symbol', 'position', 'marketPrice', 'marketValue', 'averageCost', 'unrealizedPNL']]
     Portfolio_BOND = Portfolio[Portfolio["secType"] == "BOND"][[
-        'Account', 'symbol', 'lastTradeDate', 'position', 'marketPrice', 'marketValue', 'averageCost', 'unrealizedPNL']]
+        'Date', 'Account', 'symbol', 'lastTradeDate', 'position', 'marketPrice', 'marketValue', 'averageCost',
+        'unrealizedPNL']]
     Portfolio_OPT = Portfolio[Portfolio["secType"] == "OPT"][[
-        'Account', 'symbol', 'right', 'strike', 'lastTradeDate', 'position', 'marketPrice', 'marketValue',
+        'Date', 'Account', 'symbol', 'right', 'strike', 'lastTradeDate', 'position', 'marketPrice', 'marketValue',
         'averageCost', 'unrealizedPNL']]
     Portfolio_FUT = Portfolio[Portfolio["secType"] == "FUT"][[
-        'Account', 'symbol', 'lastTradeDate', 'position', 'marketPrice', 'marketValue', 'averageCost', 'unrealizedPNL']]
+        'Date', 'Account', 'symbol', 'lastTradeDate', 'position', 'marketPrice', 'marketValue', 'averageCost',
+        'unrealizedPNL']]
 
     Portfolio_list = {'Portfolio_STK': Portfolio_STK,
                       'Portfolio_BOND': Portfolio_BOND,
@@ -107,24 +119,18 @@ db_date = collection.distinct("date")
 download_date_list = db_date[-10:]
 
 check_AccountSummary = read_AccountSummary(download_date_list[-1])
-check_Portfolio_STK = Porfolio_list(download_date_list[-1])["Portfolio_STK"]
-check_Portfolio_BOND = Porfolio_list(download_date_list[-1])["Portfolio_BOND"]
-check_Portfolio_OPT = Porfolio_list(download_date_list[-1])["Portfolio_OPT"]
-check_Portfolio_FUT = Porfolio_list(download_date_list[-1])["Portfolio_FUT"]
+Portfolio_STK = Porfolio_list(download_date_list)["Portfolio_STK"]
+Portfolio_BOND = Porfolio_list(download_date_list)["Portfolio_BOND"]
+Portfolio_OPT = Porfolio_list(download_date_list)["Portfolio_OPT"]
+Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
 
-Account_Page_Size = len(check_AccountSummary.index)
-Portfolio_STK_Page_Size = len(check_Portfolio_STK.index)
-Portfolio_BOND_Page_Size = len(check_Portfolio_BOND.index)
-Portfolio_OPT_Page_Size = len(check_Portfolio_OPT.index)
-Portfolio_FUT_Page_Size = len(check_Portfolio_FUT.index)
+
 
 # make app
 app = dash.Dash()
 
 app.layout = html.Div(
     className="row",
-    style={
-        "align": "start"},
     children=[
         html.Div(
             dcc.Dropdown(
@@ -134,22 +140,9 @@ app.layout = html.Div(
                 multi=True
             )
         ),
-
         html.Div(
             children=[
                 html.Div(
-                    className="six columns",
-                    id='account-table',
-                    style={
-                        'width': "50%",
-                        'padding': 10,
-                        'border': 10,
-                        "margin": 10,
-                        "display": "inline-block"
-                    }
-                ),
-                html.Div(
-                    className="six columns",
                     id='account-graph',
                     style={
                         'width': "45%",
@@ -163,32 +156,6 @@ app.layout = html.Div(
         )
     ]
 )
-
-
-@app.callback(
-    Output('account-table', 'children'),
-    Input('account-dropdown', 'value')
-)
-def update_account_table(value):
-    df = check_AccountSummary
-    data = df.filter(items=value, axis=0).reset_index()
-
-    columns = [{"name": i, "id": i, "deletable": False, "selectable": True, "type": 'numeric',
-                "format": Format(precision=2, scheme=Scheme.fixed)} for i in
-               data.columns]
-    data = data.to_dict('records')
-
-    return dash_table.DataTable(
-        data=data,
-        columns=columns,
-        editable=False,
-        sort_action="native",
-        sort_mode="single",
-        row_deletable=False,
-        selected_columns=[],
-        selected_rows=[],
-        page_action="native",
-        page_current=0)
 
 
 @app.callback(
