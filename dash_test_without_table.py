@@ -1,5 +1,5 @@
 import dash
-from dash import Dash, html, dash_table, dcc
+from dash import Dash, html, dash_table, dcc, callback_context
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output
 from pymongo import MongoClient
@@ -116,7 +116,7 @@ client = MongoClient(CONNECTION_STRING, tls=True, tlsAllowInvalidCertificates=Tr
 db = client.getdata
 collection = db.ib
 db_date = collection.distinct("date")
-download_date_list = db_date[-10:]
+download_date_list = db_date[-20:]
 
 check_AccountSummary = read_AccountSummary(download_date_list[-1])
 Portfolio_STK = Porfolio_list(download_date_list)["Portfolio_STK"]
@@ -129,16 +129,22 @@ Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
 # make app
 app = dash.Dash()
 
+options = check_AccountSummary.index
+groups = {"groupA": list(options[:10]),
+          "groupB": list(options[10:])}
+group_options = list(groups.keys())
+
+
+
+
 app.layout = html.Div(
     className="row",
     children=[
-        html.Div(
-            dcc.Dropdown(
-                id='account-dropdown',
-                options=check_AccountSummary.index,
-                value=check_AccountSummary.index,
-                multi=True
-            )
+        html.Div([
+            dcc.Checklist(["All"], [], id="all-checklist", inline=True),
+            dcc.Checklist(group_options, [], id="group-checklist", inline=True),
+            dcc.Checklist(options, [], id="account-checklist", inline=True)
+            ]
         ),
         html.Div(
             children=[
@@ -158,9 +164,55 @@ app.layout = html.Div(
 )
 
 
+
+@app.callback(
+    Output("account-checklist", "value"),
+    Output("group-checklist", "value"),
+    Output("all-checklist", "value"),
+    Input("account-checklist", "value"),
+    Input("group-checklist", "value"),
+    Input("all-checklist", "value"),
+)
+def sync_checklists(account_selected, group_selected, all_selected):
+    ctx = callback_context
+    input_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if input_id == "account-checklist":
+        if set(account_selected) == set(groups['groupA']):
+            group_selected = ["groupA"]
+        elif set(account_selected) == set(groups['groupB']):
+            group_selected = ["groupB"]
+        else:
+            group_selected = []
+    elif input_id == "group-checklist":
+        if set(group_selected).issuperset(["groupA"]):
+            account_selected += groups.get("groupA")
+        else:
+            account_selected -= groups.get("groupA")
+        if set(group_selected).issuperset(["groupB"]):
+            account_selected += groups.get("groupB")
+        else:
+            account_selected -= groups.get("groupB")
+        #
+        # if group_selected == ["groupB"]:
+        #     account_selected += groups.get("groupB")
+        if set(group_selected) == set(group_options):
+            all_selected = ["All"]
+        else:
+            account_selected = []
+    else:
+        if all_selected:
+            account_selected = options
+            group_selected = group_options
+        else:
+            all_selected = []
+            group_selected = []
+            account_selected = []
+    return account_selected, group_selected, all_selected
+
+
 @app.callback(
     Output('account-graph', "children"),
-    Input('account-dropdown', 'value')
+    Input('account-checklist', 'value')
 )
 def update_graphs(value):
     dff = read_all_AccountSummary(download_date_list)
