@@ -128,6 +128,7 @@ Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
 
 Portfolio_STK['des'] = Portfolio_STK['Account'] + Portfolio_STK['symbol']
 
+
 # make app
 app = dash.Dash()
 
@@ -164,7 +165,6 @@ app.layout = html.Div([
     html.Div(
         dcc.Graph(
             id='stock-position',
-            # hoverData={'points': [{'customdata': []}]}),
             hoverData={'points': [{'customdata': Portfolio_STK.iloc[1, 8]}]}),
         style={
             'width': "45%",
@@ -291,28 +291,27 @@ def update_account_graphs(value):
     )
 
 
+
 @app.callback(
     Output('stock-position', "figure"),
-    Input('account-checklist', 'value'),
     Input('stock-date-slider', 'value')
 )
-def update_stock_graph(account_value, date_value):
+def update_stock_graph(date_value):
     date = download_date_list[date_value]
     df = Portfolio_STK
-    df = df.loc[df['Account'].isin(account_value)]
-    dff = df[df['Date'] == date]
+    account_list = df['Account'].unique()
 
     # hover_text
     hover_text = []
-    for index, row in dff.iterrows():
+    for index, row in df.iterrows():
         hover_text.append((f"{row['symbol']}<br>" +
                            f"Account: {row['Account']}<br>" +
                            f"市值: {row['marketValue']}<br>" +
                            f"未實現損益: {row['unrealizedPNL']}<br>"
                            ))
-    dff['hover_text'] = hover_text
+    df['hover_text'] = hover_text
 
-    account_list = dff['Account'].unique()
+    dff = df[df['Date'] == date]
 
     fig = go.Figure()
     for account in account_list:
@@ -329,7 +328,7 @@ def update_stock_graph(account_value, date_value):
                                  )
                       )
 
-    fig.update_traces(customdata=df['des'])
+    fig.update_traces(customdata=dff['des'])
 
     fig.update_layout(title='Stock Position',
                       xaxis=dict(title='市值',
