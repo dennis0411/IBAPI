@@ -39,6 +39,22 @@ def read_AccountSummary(download_date):
     for account_data in df:
         data = pd.DataFrame(account_data['data'])
         AccountSummary = pd.concat([AccountSummary, data], axis=0, ignore_index=True)
+
+    AccountSummary = AccountSummary.pivot(index="Account", columns="tag",
+                                          values='value')
+
+    Portfolio = read_Portfolio(download_date)
+
+    # 帳戶資料新增持倉
+    for account in AccountSummary.index:
+        secType_filt = {"StockValue": (Portfolio["Account"] == account) & (Portfolio["secType"] == "STK"),
+                        "BondValue": (Portfolio["Account"] == account) & (Portfolio["secType"] == "BOND"),
+                        "OPTValue": (Portfolio["Account"] == account) & (Portfolio["secType"] == "OPT"),
+                        "FUTValue": (Portfolio["Account"] == account) & (Portfolio["secType"] == "FUT"),
+                        }
+        for filt in secType_filt.keys():
+            AccountSummary.loc[account, filt] = Portfolio[secType_filt.get(filt)]['marketValue'].sum()
+    AccountSummary["Date"] = download_date
     return AccountSummary
 
 
@@ -86,6 +102,14 @@ def Porfolio_list(download_date_list):
     return Portfolio_list
 
 
+def read_all_AccountSummary(download_date_list):
+    AccountSummary = pd.DataFrame()
+    for download_date in download_date_list:
+        AccountSummary = pd.concat([read_AccountSummary(download_date).reset_index(), AccountSummary], axis=0,
+                                   ignore_index=True)
+    return AccountSummary
+
+
 if __name__ == "__main__":
     download_date = '2022/04/06'
     a = read_AccountSummary(download_date)
@@ -98,3 +122,11 @@ if __name__ == "__main__":
     Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
     print(Read_Portfolio(download_date_list))
     print(Portfolio_STK)
+    print(len(download_date_list))
+    print(range(len(download_date_list)))
+    df = Portfolio_STK
+    dff = df[df['Account'] == 'U2856757']
+    dfff = dff[dff['symbol'] == 'VRTX']
+    print(Portfolio_STK.iloc[1, 2])
+    df['des'] = df['Account'] + df['symbol']
+    print(df)
