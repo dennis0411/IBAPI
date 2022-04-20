@@ -154,7 +154,6 @@ app.layout = html.Div([
                     html.Div(
                         id='account-graph',
                         style={
-                            'width': "45%",
                             'padding': 10,
                             'border': 10,
                             "margin": 10,
@@ -177,15 +176,22 @@ app.layout = html.Div([
         }
     ),
     html.Div([
-        dcc.Graph(id='stock-time-series-value'),
-        dcc.Graph(id='stock-time-series-position'),
+        dcc.Graph(id='stock-time-series-value',
+                  style={
+                      'margin': 5,
+                  }),
+        dcc.Graph(id='stock-time-series-position',
+                  style={
+                      'margin': 5,
+                  }
+                  ),
     ],
         style={
             'width': "45%",
-            'padding': 10,
+            'padding': 5,
             'border': 10,
             'margin': 10,
-            'display': 'inline-block'
+            "display": "inline-block"
         }
     ),
     html.Div(
@@ -207,8 +213,8 @@ app.layout = html.Div([
     html.Div(
         dcc.Graph(
             id='bond-position',
-            hoverData={'points': [{'customdata': 'NoData'}]}),
-        # hoverData={'points': [{'customdata': Portfolio_BOND['des'].head(1).item()}]}),
+            hoverData={'points': [{'customdata': 'NoData'}]}
+        ),
         style={
             'width': "45%",
             'padding': 10,
@@ -218,12 +224,19 @@ app.layout = html.Div([
         }
     ),
     html.Div([
-        dcc.Graph(id='bond-time-series-value'),
-        dcc.Graph(id='bond-time-series-position'),
+        dcc.Graph(id='bond-time-series-value',
+                  style={
+                      'margin': 5,
+                  }),
+        dcc.Graph(id='bond-time-series-position',
+                  style={
+                      'margin': 5,
+                  }
+                  ),
     ],
         style={
             'width': "45%",
-            'padding': 10,
+            'padding': 5,
             'border': 10,
             'margin': 10,
             "display": "inline-block"
@@ -329,6 +342,14 @@ def update_account_graphs(value):
                         "display": "inline-block",
                     },
                 },
+                style={
+                    'height': 400,
+                    'width': "45%",
+                    'padding': 10,
+                    'border': 10,
+                    "margin": 10,
+                    "display": "inline-block"
+                }
             )
             for column in ["NetLiquidation", "TotalCashValue", "StockValue", "BondValue"]
         ]
@@ -471,11 +492,7 @@ def update_bond_timeseries_value(hoverData):
 def update_bond_timeseries_position(hoverData):
     df = Portfolio_BOND
     des = hoverData['points'][0]['customdata']
-    print(des)
-    print(type(des))
-
     dff = df[df['des'] == des]
-    print(dff)
     column = 'position'
     return create_time_series(dff, column)
 
