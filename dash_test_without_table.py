@@ -11,9 +11,7 @@ from plotly.colors import n_colors
 import dash_bootstrap_components as dbc
 
 import plotly.express as px
-import datetime
-from datetime import date
-from plotly.subplots import make_subplots
+
 
 # 列印用
 desired_width = 320
@@ -274,26 +272,23 @@ def sync_checklists(account_selected, group_selected, all_selected):
     ctx = callback_context
     input_id = ctx.triggered[0]["prop_id"].split(".")[0]
     if input_id == "account-checklist":
-        if set(account_selected) == set(groups['groupA']):
+        if set(account_selected) == set(options):
+            group_selected = group_options
+            all_selected = ["All"]
+        elif set(account_selected).issuperset(set(groups['groupA'])):
             group_selected = ["groupA"]
-        elif set(account_selected) == set(groups['groupB']):
+        elif set(account_selected).issuperset(set(groups['groupB'])):
             group_selected = ["groupB"]
         else:
             group_selected = []
     elif input_id == "group-checklist":
-        if set(group_selected).issuperset(["groupA"]):
-            account_selected += groups.get("groupA")
-        else:
-            account_selected -= groups.get("groupA")
-        if set(group_selected).issuperset(["groupB"]):
-            account_selected += groups.get("groupB")
-        else:
-            account_selected -= groups.get("groupB")
-        #
-        # if group_selected == ["groupB"]:
-        #     account_selected += groups.get("groupB")
         if set(group_selected) == set(group_options):
+            account_selected = options
             all_selected = ["All"]
+        elif group_selected == ["groupA"]:
+            account_selected += groups.get("groupA")
+        elif group_selected == ["groupB"]:
+            account_selected += groups.get("groupB")
         else:
             account_selected = []
     else:
@@ -304,6 +299,9 @@ def sync_checklists(account_selected, group_selected, all_selected):
             all_selected = []
             group_selected = []
             account_selected = []
+
+    print(group_selected)
+    print(account_selected)
     return account_selected, group_selected, all_selected
 
 
