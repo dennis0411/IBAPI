@@ -126,8 +126,10 @@ Portfolio_BOND = Porfolio_list(download_date_list)["Portfolio_BOND"]
 Portfolio_OPT = Porfolio_list(download_date_list)["Portfolio_OPT"]
 Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
 
-Portfolio_STK['des'] = Portfolio_STK['Account'] + Portfolio_STK['symbol']
-
+Portfolio_STK['des'] = Portfolio_STK['Account'] + " : " + Portfolio_STK['symbol']
+Portfolio_BOND['des'] = Portfolio_BOND['Account'] + " : " + Portfolio_BOND['symbol'] + " " + Portfolio_BOND[
+    'lastTradeDate']
+Portfolio_BOND['position'] = Portfolio_BOND['position'] * 1000
 
 # make app
 app = dash.Dash()
@@ -165,7 +167,7 @@ app.layout = html.Div([
     html.Div(
         dcc.Graph(
             id='stock-position',
-            hoverData={'points': [{'customdata': Portfolio_STK.iloc[1, 8]}]}),
+            hoverData={'points': [{'customdata': 'NoData'}]}),
         style={
             'width': "45%",
             'padding': 10,
@@ -174,14 +176,16 @@ app.layout = html.Div([
             "display": "inline-block"
         }
     ),
-    html.Div(
-        dcc.Graph(id='stock-time-series'),
+    html.Div([
+        dcc.Graph(id='stock-time-series-value'),
+        dcc.Graph(id='stock-time-series-position'),
+    ],
         style={
-            'width': "40%",
+            'width': "45%",
             'padding': 10,
             'border': 10,
-            "margin": 10,
-            "display": "inline-block"
+            'margin': 10,
+            'display': 'inline-block'
         }
     ),
     html.Div(
@@ -197,8 +201,48 @@ app.layout = html.Div([
             'width': "45%",
             'padding': 10,
             'border': 10,
+            "margin": 10
+        }
+    ),
+    html.Div(
+        dcc.Graph(
+            id='bond-position',
+            hoverData={'points': [{'customdata': 'NoData'}]}),
+        # hoverData={'points': [{'customdata': Portfolio_BOND['des'].head(1).item()}]}),
+        style={
+            'width': "45%",
+            'padding': 10,
+            'border': 10,
             "margin": 10,
             "display": "inline-block"
+        }
+    ),
+    html.Div([
+        dcc.Graph(id='bond-time-series-value'),
+        dcc.Graph(id='bond-time-series-position'),
+    ],
+        style={
+            'width': "45%",
+            'padding': 10,
+            'border': 10,
+            'margin': 10,
+            "display": "inline-block"
+        }
+    ),
+    html.Div(
+        dcc.Slider(
+            min=0,
+            max=len(download_date_list) - 1,
+            step=1,
+            id='bond-date-slider',
+            value=len(download_date_list) - 1,
+            marks={i: download_date_list[i] for i in range(len(download_date_list))}
+        ),
+        style={
+            'width': "45%",
+            'padding': 10,
+            'border': 10,
+            "margin": 10,
         }
     )
 ]
@@ -291,51 +335,30 @@ def update_account_graphs(value):
     )
 
 
-
 @app.callback(
     Output('stock-position', "figure"),
-    Input('stock-date-slider', 'value')
+    Input('stock-date-slider', 'value'),
+    Input('account-checklist', 'value')
 )
-def update_stock_graph(date_value):
+def update_stock_graph(date_value, account_selected):
     date = download_date_list[date_value]
-    df = Portfolio_STK
-    account_list = df['Account'].unique()
-
-    # hover_text
-    hover_text = []
-    for index, row in df.iterrows():
-        hover_text.append((f"{row['symbol']}<br>" +
-                           f"Account: {row['Account']}<br>" +
-                           f"市值: {row['marketValue']}<br>" +
-                           f"未實現損益: {row['unrealizedPNL']}<br>"
-                           ))
-    df['hover_text'] = hover_text
-
+    df = Portfolio_STK[Portfolio_STK['Account'].isin(account_selected)]
     dff = df[df['Date'] == date]
 
-    fig = go.Figure()
-    for account in account_list:
-        dfff = dff[dff['Account'] == account]
-        fig.add_trace(go.Scatter(x=dfff['marketValue'],
-                                 y=dfff['unrealizedPNL'],
-                                 text=dfff['hover_text'],
-                                 mode='markers',
-                                 marker=dict(
-                                     sizemode='diameter',
-                                     size=20),
-                                 name=account,
-                                 showlegend=True
-                                 )
-                      )
+    fig = px.scatter(dff,
+                     x=dff['marketValue'],
+                     y='unrealizedPNL',
+                     hover_name='des'
+                     )
 
     fig.update_traces(customdata=dff['des'])
 
     fig.update_layout(title='Stock Position',
-                      xaxis=dict(title='市值',
+                      xaxis=dict(title='marketValue',
                                  gridcolor='white',
                                  gridwidth=2,
                                  ),
-                      yaxis=dict(title='未實現損益',
+                      yaxis=dict(title='unrealizedPNL',
                                  gridcolor='white',
                                  gridwidth=2,
                                  ),
@@ -346,36 +369,115 @@ def update_stock_graph(date_value):
     return fig
 
 
-def create_time_series(dfff, title):
-    fig = px.scatter(dfff, x='Date', y='marketValue')
+def create_time_series(dff, column):
+    dfff = dff.copy()
+    dfff['Date'] = pd.to_datetime(dff['Date']).dt.strftime('%m/%d')
 
-    # fig.add_trace(px.scatter(dfff, x='Date', y='position'))
+    fig = px.scatter(dfff, x='Date', y=column, hover_name='des')
 
     fig.update_traces(mode='lines+markers')
 
-    fig.update_xaxes(showgrid=False)
-
-    fig.add_annotation(x=0, y=0.85, xanchor='left', yanchor='bottom',
-                       xref='paper', yref='paper', showarrow=False, align='left',
-                       text=title)
-
-    fig.update_layout(margin={'l': 20, 'b': 30, 'r': 10, 't': 10})
+    fig.update_layout(xaxis=dict(title=None,
+                                 gridcolor='white',
+                                 gridwidth=2,
+                                 ),
+                      yaxis=dict(title=column,
+                                 gridcolor='white',
+                                 gridwidth=2,
+                                 ),
+                      height=225,
+                      margin={'l': 20, 'b': 30, 'r': 10, 't': 10},
+                      paper_bgcolor='rgb(243, 243, 243)',
+                      plot_bgcolor='rgb(243, 243, 243)'
+                      )
 
     return fig
 
 
 @app.callback(
-    Output('stock-time-series', 'figure'),
+    Output('stock-time-series-value', 'figure'),
     Input('stock-position', 'hoverData')
 )
-def update_stock_timeseries(hoverData):
+def update_stock_timeseries_value(hoverData):
     df = Portfolio_STK
     des = hoverData['points'][0]['customdata']
     dff = df[df['des'] == des]
-    symbol = dff['symbol'].unique().item()
-    account = dff['Account'].unique().item()
-    title = f'{account} : {symbol}'
-    return create_time_series(dff, title)
+    column = 'marketValue'
+    return create_time_series(dff, column)
+
+
+@app.callback(
+    Output('stock-time-series-position', 'figure'),
+    Input('stock-position', 'hoverData')
+)
+def update_stock_timeseries_position(hoverData):
+    df = Portfolio_STK
+    des = hoverData['points'][0]['customdata']
+    dff = df[df['des'] == des]
+    column = 'position'
+    return create_time_series(dff, column)
+
+
+@app.callback(
+    Output('bond-position', "figure"),
+    Input('bond-date-slider', 'value'),
+    Input('account-checklist', 'value')
+)
+def update_bond_graph(date_value, account_selected):
+    date = download_date_list[date_value]
+    df = Portfolio_BOND[Portfolio_BOND['Account'].isin(account_selected)]
+    dff = df[df['Date'] == date]
+
+    fig = px.scatter(dff,
+                     x=dff['marketValue'],
+                     y='unrealizedPNL',
+                     hover_name='des'
+                     )
+
+    fig.update_traces(customdata=dff['des'])
+
+    fig.update_layout(title='Bond Position',
+                      xaxis=dict(title='marketValue',
+                                 gridcolor='white',
+                                 gridwidth=2,
+                                 ),
+                      yaxis=dict(title='unrealizedPNL',
+                                 gridcolor='white',
+                                 gridwidth=2,
+                                 ),
+                      paper_bgcolor='rgb(243, 243, 243)',
+                      plot_bgcolor='rgb(243, 243, 243)',
+                      )
+
+    return fig
+
+
+@app.callback(
+    Output('bond-time-series-value', 'figure'),
+    Input('bond-position', 'hoverData')
+)
+def update_bond_timeseries_value(hoverData):
+    df = Portfolio_BOND
+    des = hoverData['points'][0]['customdata']
+    dff = df[df['des'] == des]
+    column = 'marketValue'
+    return create_time_series(dff, column)
+
+
+@app.callback(
+    Output('bond-time-series-position', 'figure'),
+    Input('bond-position', 'hoverData'),
+)
+def update_bond_timeseries_position(hoverData):
+    df = Portfolio_BOND
+    des = hoverData['points'][0]['customdata']
+    print(des)
+    print(type(des))
+
+    dff = df[df['des'] == des]
+    print(dff)
+    column = 'position'
+    return create_time_series(dff, column)
 
 
 if __name__ == "__main__":

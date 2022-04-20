@@ -120,13 +120,10 @@ if __name__ == "__main__":
     Portfolio_BOND = Porfolio_list(download_date_list)["Portfolio_BOND"]
     Portfolio_OPT = Porfolio_list(download_date_list)["Portfolio_OPT"]
     Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
-    print(Read_Portfolio(download_date_list))
-    print(Portfolio_STK)
-    print(len(download_date_list))
-    print(range(len(download_date_list)))
-    df = Portfolio_STK
+
+    df = Portfolio_BOND
     dff = df[df['Account'] == 'U2856757']
-    dfff = dff[dff['symbol'] == 'VRTX']
-    print(Portfolio_STK.iloc[1, 2])
-    df['des'] = df['Account'] + df['symbol']
+    df['des'] = df['Account'] + " : " + df['symbol'] + " " + df['lastTradeDate']
+    df['Date']= pd.to_datetime(df['Date']).dt.strftime('%m/%d')
     print(df)
+
