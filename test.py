@@ -166,42 +166,11 @@ app.layout = html.Div([
             )]
     ),
     html.Div(
-        dcc.Graph(
-            id='stock-position',
-            hoverData={'points': [{'customdata': 'NoData'}]}),
-        style={
-            'width': "45%",
-            'padding': 10,
-            'border': 10,
-            "margin": 10,
-            "display": "inline-block"
-        }
-    ),
-    html.Div([
-        dcc.Graph(id='stock-time-series-value',
-                  style={
-                      'margin': 5,
-                  }),
-        dcc.Graph(id='stock-time-series-position',
-                  style={
-                      'margin': 5,
-                  }
-                  ),
-    ],
-        style={
-            'width': "45%",
-            'padding': 5,
-            'border': 10,
-            'margin': 10,
-            "display": "inline-block"
-        }
-    ),
-    html.Div(
         dcc.Slider(
             min=0,
             max=len(download_date_list) - 1,
             step=1,
-            id='stock-date-slider',
+            id='date-slider',
             value=len(download_date_list) - 1,
             marks={i: download_date_list[i] for i in range(len(download_date_list))}
         ),
@@ -212,54 +181,76 @@ app.layout = html.Div([
             "margin": 10
         }
     ),
-    html.Div(
-        dcc.Graph(
-            id='bond-position',
-            hoverData={'points': [{'customdata': 'NoData'}]}
+    dcc.Tabs([
+        dcc.Tab(label='Tab one', children=[
+            html.Div(
+                dcc.Graph(
+                    id='stock-position',
+                    hoverData={'points': [{'customdata': 'NoData'}]}),
+                style={
+                    'width': "45%",
+                    'padding': 10,
+                    'border': 10,
+                    "margin": 10,
+                    "display": "inline-block"
+                }
+            ),
+
+            html.Div([
+                dcc.Graph(id='stock-time-series-value',
+                          style={
+                              'margin': 5,
+                          }),
+                dcc.Graph(id='stock-time-series-position',
+                          style={
+                              'margin': 5,
+                          }
+                          ),
+            ],
+                style={
+                    'width': "45%",
+                    'padding': 5,
+                    'border': 10,
+                    'margin': 10,
+                    "display": "inline-block"
+                }
+            )]
         ),
-        style={
-            'width': "45%",
-            'padding': 10,
-            'border': 10,
-            "margin": 10,
-            "display": "inline-block"
-        }
-    ),
-    html.Div([
-        dcc.Graph(id='bond-time-series-value',
-                  style={
-                      'margin': 5,
-                  }),
-        dcc.Graph(id='bond-time-series-position',
-                  style={
-                      'margin': 5,
-                  }
-                  ),
-    ],
-        style={
-            'width': "45%",
-            'padding': 5,
-            'border': 10,
-            'margin': 10,
-            "display": "inline-block"
-        }
-    ),
-    html.Div(
-        dcc.Slider(
-            min=0,
-            max=len(download_date_list) - 1,
-            step=1,
-            id='bond-date-slider',
-            value=len(download_date_list) - 1,
-            marks={i: download_date_list[i] for i in range(len(download_date_list))}
-        ),
-        style={
-            'width': "45%",
-            'padding': 10,
-            'border': 10,
-            "margin": 10,
-        }
-    )
+        dcc.Tab(label='Tab one', children=[
+            html.Div(
+                dcc.Graph(
+                    id='bond-position',
+                    hoverData={'points': [{'customdata': 'NoData'}]}
+                ),
+                style={
+                    'width': "45%",
+                    'padding': 10,
+                    'border': 10,
+                    "margin": 10,
+                    "display": "inline-block"
+                }
+            ),
+            html.Div([
+                dcc.Graph(id='bond-time-series-value',
+                          style={
+                              'margin': 5,
+                          }),
+                dcc.Graph(id='bond-time-series-position',
+                          style={
+                              'margin': 5,
+                          }
+                          ),
+            ],
+                style={
+                    'width': "45%",
+                    'padding': 5,
+                    'border': 10,
+                    'margin': 10,
+                    "display": "inline-block"
+                }
+            )]
+        )
+    ])
 ]
 )
 
@@ -355,7 +346,7 @@ def update_account_graphs(value):
 
 @app.callback(
     Output('stock-position', "figure"),
-    Input('stock-date-slider', 'value'),
+    Input('date-slider', 'value'),
     Input('account-checklist', 'value')
 )
 def update_stock_graph(date_value, account_selected):
@@ -438,7 +429,7 @@ def update_stock_timeseries_position(hoverData):
 
 @app.callback(
     Output('bond-position', "figure"),
-    Input('bond-date-slider', 'value'),
+    Input('date-slider', 'value'),
     Input('account-checklist', 'value')
 )
 def update_bond_graph(date_value, account_selected):

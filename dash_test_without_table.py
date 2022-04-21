@@ -12,7 +12,6 @@ import dash_bootstrap_components as dbc
 
 import plotly.express as px
 
-
 # 列印用
 desired_width = 320
 pd.set_option('display.width', desired_width)
@@ -120,8 +119,6 @@ read_all_AccountSummary = read_all_AccountSummary(download_date_list)
 
 check_AccountSummary = read_AccountSummary(download_date_list[-1])
 
-
-
 Portfolio_STK = Porfolio_list(download_date_list)["Portfolio_STK"]
 stock_account = Portfolio_STK[Portfolio_STK['Date'] == download_date_list[-1]]['Account'].unique()
 
@@ -130,7 +127,6 @@ bond_account = Portfolio_BOND[Portfolio_BOND['Date'] == download_date_list[-1]][
 
 Portfolio_OPT = Porfolio_list(download_date_list)["Portfolio_OPT"]
 Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
-
 
 Portfolio_STK['des'] = Portfolio_STK['Account'] + " : " + Portfolio_STK['symbol']
 Portfolio_BOND['des'] = Portfolio_BOND['Account'] + " : " + Portfolio_BOND['symbol'] + " " + Portfolio_BOND[
@@ -170,42 +166,11 @@ app.layout = html.Div([
             )]
     ),
     html.Div(
-        dcc.Graph(
-            id='stock-position',
-            hoverData={'points': [{'customdata': 'NoData'}]}),
-        style={
-            'width': "45%",
-            'padding': 10,
-            'border': 10,
-            "margin": 10,
-            "display": "inline-block"
-        }
-    ),
-    html.Div([
-        dcc.Graph(id='stock-time-series-value',
-                  style={
-                      'margin': 5,
-                  }),
-        dcc.Graph(id='stock-time-series-position',
-                  style={
-                      'margin': 5,
-                  }
-                  ),
-    ],
-        style={
-            'width': "45%",
-            'padding': 5,
-            'border': 10,
-            'margin': 10,
-            "display": "inline-block"
-        }
-    ),
-    html.Div(
         dcc.Slider(
             min=0,
             max=len(download_date_list) - 1,
             step=1,
-            id='stock-date-slider',
+            id='date-slider',
             value=len(download_date_list) - 1,
             marks={i: download_date_list[i] for i in range(len(download_date_list))}
         ),
@@ -216,54 +181,76 @@ app.layout = html.Div([
             "margin": 10
         }
     ),
-    html.Div(
-        dcc.Graph(
-            id='bond-position',
-            hoverData={'points': [{'customdata': 'NoData'}]}
-        ),
-        style={
-            'width': "45%",
-            'padding': 10,
-            'border': 10,
-            "margin": 10,
-            "display": "inline-block"
-        }
-    ),
-    html.Div([
-        dcc.Graph(id='bond-time-series-value',
-                  style={
-                      'margin': 5,
-                  }),
-        dcc.Graph(id='bond-time-series-position',
-                  style={
-                      'margin': 5,
-                  }
-                  ),
-    ],
-        style={
-            'width': "45%",
-            'padding': 5,
-            'border': 10,
-            'margin': 10,
-            "display": "inline-block"
-        }
-    ),
-    html.Div(
-        dcc.Slider(
-            min=0,
-            max=len(download_date_list) - 1,
-            step=1,
-            id='bond-date-slider',
-            value=len(download_date_list) - 1,
-            marks={i: download_date_list[i] for i in range(len(download_date_list))}
-        ),
-        style={
-            'width': "45%",
-            'padding': 10,
-            'border': 10,
-            "margin": 10,
-        }
-    )
+    dcc.Tabs([
+        dcc.Tab(label='Tab one', children=[
+            html.Div(
+                dcc.Graph(
+                    id='stock-position',
+                    hoverData={'points': [{'customdata': 'NoData'}]}),
+                style={
+                    'width': "45%",
+                    'padding': 10,
+                    'border': 10,
+                    "margin": 10,
+                    "display": "inline-block"
+                }
+            ),
+
+            html.Div([
+                dcc.Graph(id='stock-time-series-value',
+                          style={
+                              'margin': 5,
+                          }),
+                dcc.Graph(id='stock-time-series-position',
+                          style={
+                              'margin': 5,
+                          }
+                          ),
+            ],
+                style={
+                    'width': "45%",
+                    'padding': 5,
+                    'border': 10,
+                    'margin': 10,
+                    "display": "inline-block"
+                }
+            )]
+                ),
+        dcc.Tab(label='Tab one', children=[
+            html.Div(
+                dcc.Graph(
+                    id='bond-position',
+                    hoverData={'points': [{'customdata': 'NoData'}]}
+                ),
+                style={
+                    'width': "45%",
+                    'padding': 10,
+                    'border': 10,
+                    "margin": 10,
+                    "display": "inline-block"
+                }
+            ),
+            html.Div([
+                dcc.Graph(id='bond-time-series-value',
+                          style={
+                              'margin': 5,
+                          }),
+                dcc.Graph(id='bond-time-series-position',
+                          style={
+                              'margin': 5,
+                          }
+                          ),
+            ],
+                style={
+                    'width': "45%",
+                    'padding': 5,
+                    'border': 10,
+                    'margin': 10,
+                    "display": "inline-block"
+                }
+            )]
+                )
+    ])
 ]
 )
 
@@ -319,38 +306,36 @@ def update_account_graphs(value):
     dff = dff.loc[dff['Account'].isin(value)]
     dfff = pd.DataFrame()
     for date in download_date_list:
-        for columns in ["NetLiquidation", "TotalCashValue", "StockValue", "BondValue"]:
-            dfff.loc[date, columns] = dff[dff["Date"] == date][columns].astype(float).sum()
+        for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
+            dfff.loc[date, column] = dff[dff["Date"] == date][column].astype(float).sum()
+
+    for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
+        hover_text = []
+        for index, row in dfff.iterrows():
+            hover_text.append((f"{column} : {row[column]:,.2f}<br>" +
+                               f"佔淨值比 : {row[column] / row['NetLiquidation'] if row['NetLiquidation'] != 0 else 0:.2%}<br>"))
+        dfff[f'{column}-des'] = hover_text
 
     return html.Div(
         [
             dcc.Graph(
                 id=column,
-                figure={
-                    "data": [
-                        {
-                            "x": download_date_list,
-                            "y": dfff[column],
-                            "type": "scatter+line",
-                            "marker": {"color": "#0074D9"},
-                        }
-                    ],
-                    "layout": {
+                figure=go.Figure(
+                    data=go.Scatter(x=dfff.index, y=dfff[column],
+                                    hovertext=dfff[f'{column}-des']),
+                    layout={
                         "xaxis": {"automargin": True},
                         "yaxis": {"automargin": True},
-                        'padding': 10,
-                        'border': 10,
                         "title": column,
-                        "margin": {"t": 50, "l": 10, "r": 10},
-                        "display": "inline-block",
-                    },
-                },
+                        "margin": {"t": 30, "l": 10, "r": 10},
+                    }
+                ),
                 style={
                     'height': 400,
                     'width': "45%",
-                    'padding': 10,
-                    'border': 10,
-                    "margin": 10,
+                    'padding': 5,
+                    'border': 5,
+                    "margin": 5,
                     "display": "inline-block"
                 }
             )
@@ -361,7 +346,7 @@ def update_account_graphs(value):
 
 @app.callback(
     Output('stock-position', "figure"),
-    Input('stock-date-slider', 'value'),
+    Input('date-slider', 'value'),
     Input('account-checklist', 'value')
 )
 def update_stock_graph(date_value, account_selected):
@@ -444,7 +429,7 @@ def update_stock_timeseries_position(hoverData):
 
 @app.callback(
     Output('bond-position', "figure"),
-    Input('bond-date-slider', 'value'),
+    Input('date-slider', 'value'),
     Input('account-checklist', 'value')
 )
 def update_bond_graph(date_value, account_selected):
