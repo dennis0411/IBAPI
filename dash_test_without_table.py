@@ -115,6 +115,7 @@ collection = db.ib
 db_date = collection.distinct("date")
 download_date_list = db_date[-20:]
 
+# data ready
 read_all_AccountSummary = read_all_AccountSummary(download_date_list)
 
 check_AccountSummary = read_AccountSummary(download_date_list[-1])
@@ -139,6 +140,12 @@ Portfolio_OPT['des'] = Portfolio_OPT['Account'] + " : " + Portfolio_OPT['symbol'
     'right'] + " " + Portfolio_OPT['strike'].astype(str) + " " + Portfolio_OPT['lastTradeDate']
 Portfolio_FUT['des'] = Portfolio_FUT['Account'] + " : " + Portfolio_FUT['symbol'] + " " + Portfolio_FUT[
     'lastTradeDate']
+
+read_all_AccountSummary = read_all_AccountSummary.round(2)
+Portfolio_STK = Portfolio_STK.round(2)
+Portfolio_BOND = Portfolio_BOND.round(2)
+Portfolio_OPT = Portfolio_OPT.round(2)
+Portfolio_FUT = Portfolio_FUT.round(2)
 
 # make app
 app = dash.Dash()
