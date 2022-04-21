@@ -182,7 +182,7 @@ app.layout = html.Div([
         }
     ),
     dcc.Tabs([
-        dcc.Tab(label='Tab one', children=[
+        dcc.Tab(label='Stock', children=[
             html.Div(
                 dcc.Graph(
                     id='stock-position',
@@ -216,7 +216,7 @@ app.layout = html.Div([
                 }
             )]
                 ),
-        dcc.Tab(label='Tab one', children=[
+        dcc.Tab(label='Bond', children=[
             html.Div(
                 dcc.Graph(
                     id='bond-position',
