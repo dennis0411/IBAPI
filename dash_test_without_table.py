@@ -119,10 +119,18 @@ download_date_list = db_date[-20:]
 read_all_AccountSummary = read_all_AccountSummary(download_date_list)
 
 check_AccountSummary = read_AccountSummary(download_date_list[-1])
+
+
+
 Portfolio_STK = Porfolio_list(download_date_list)["Portfolio_STK"]
+stock_account = Portfolio_STK[Portfolio_STK['Date'] == download_date_list[-1]]['Account'].unique()
+
 Portfolio_BOND = Porfolio_list(download_date_list)["Portfolio_BOND"]
+bond_account = Portfolio_BOND[Portfolio_BOND['Date'] == download_date_list[-1]]['Account'].unique()
+
 Portfolio_OPT = Porfolio_list(download_date_list)["Portfolio_OPT"]
 Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
+
 
 Portfolio_STK['des'] = Portfolio_STK['Account'] + " : " + Portfolio_STK['symbol']
 Portfolio_BOND['des'] = Portfolio_BOND['Account'] + " : " + Portfolio_BOND['symbol'] + " " + Portfolio_BOND[
@@ -133,8 +141,8 @@ Portfolio_BOND['position'] = Portfolio_BOND['position'] * 1000
 app = dash.Dash()
 
 options = check_AccountSummary.index
-groups = {"groupA": list(options[:10]),
-          "groupB": list(options[10:])}
+groups = {'with-stock': list(stock_account),
+          'with-bond': list(bond_account)}
 group_options = list(groups.keys())
 
 app.layout = html.Div([
@@ -275,20 +283,19 @@ def sync_checklists(account_selected, group_selected, all_selected):
         if set(account_selected) == set(options):
             group_selected = group_options
             all_selected = ["All"]
-        elif set(account_selected).issuperset(set(groups['groupA'])):
-            group_selected = ["groupA"]
-        elif set(account_selected).issuperset(set(groups['groupB'])):
-            group_selected = ["groupB"]
+        elif set(account_selected).issuperset(set(groups['with-stock'])):
+            group_selected = ["with-stock"]
+        elif set(account_selected).issuperset(set(groups['with-bond'])):
+            group_selected = ["with-bond"]
         else:
             group_selected = []
     elif input_id == "group-checklist":
-        if set(group_selected) == set(group_options):
-            account_selected = options
-            all_selected = ["All"]
-        elif group_selected == ["groupA"]:
-            account_selected += groups.get("groupA")
-        elif group_selected == ["groupB"]:
-            account_selected += groups.get("groupB")
+        if group_selected == ["with-stock"]:
+            account_selected += groups.get("with-stock")
+        elif group_selected == ["with-bond"]:
+            account_selected += groups.get("with-bond")
+        elif set(group_selected) == set(group_options):
+            account_selected = groups.get("with-bond") + groups.get("with-stock")
         else:
             account_selected = []
     else:
@@ -300,8 +307,6 @@ def sync_checklists(account_selected, group_selected, all_selected):
             group_selected = []
             account_selected = []
 
-    print(group_selected)
-    print(account_selected)
     return account_selected, group_selected, all_selected
 
 

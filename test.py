@@ -11,9 +11,6 @@ from plotly.colors import n_colors
 import dash_bootstrap_components as dbc
 
 import plotly.express as px
-import datetime
-from datetime import date
-from plotly.subplots import make_subplots
 
 # 列印用
 desired_width = 320
@@ -121,8 +118,13 @@ download_date_list = db_date[-20:]
 read_all_AccountSummary = read_all_AccountSummary(download_date_list)
 
 check_AccountSummary = read_AccountSummary(download_date_list[-1])
+
 Portfolio_STK = Porfolio_list(download_date_list)["Portfolio_STK"]
+stock_account = Portfolio_STK[Portfolio_STK['Date'] == download_date_list[-1]]['Account'].unique()
+
 Portfolio_BOND = Porfolio_list(download_date_list)["Portfolio_BOND"]
+bond_account = Portfolio_BOND[Portfolio_BOND['Date'] == download_date_list[-1]]['Account'].unique()
+
 Portfolio_OPT = Porfolio_list(download_date_list)["Portfolio_OPT"]
 Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
 
@@ -135,8 +137,8 @@ Portfolio_BOND['position'] = Portfolio_BOND['position'] * 1000
 app = dash.Dash()
 
 options = check_AccountSummary.index
-groups = {"groupA": list(options[:10]),
-          "groupB": list(options[10:])}
+groups = {'with-stock': list(stock_account),
+          'with-bond': list(bond_account)}
 group_options = list(groups.keys())
 
 app.layout = html.Div([
@@ -154,7 +156,6 @@ app.layout = html.Div([
                     html.Div(
                         id='account-graph',
                         style={
-                            'width': "45%",
                             'padding': 10,
                             'border': 10,
                             "margin": 10,
@@ -177,15 +178,22 @@ app.layout = html.Div([
         }
     ),
     html.Div([
-        dcc.Graph(id='stock-time-series-value'),
-        dcc.Graph(id='stock-time-series-position'),
+        dcc.Graph(id='stock-time-series-value',
+                  style={
+                      'margin': 5,
+                  }),
+        dcc.Graph(id='stock-time-series-position',
+                  style={
+                      'margin': 5,
+                  }
+                  ),
     ],
         style={
             'width': "45%",
-            'padding': 10,
+            'padding': 5,
             'border': 10,
             'margin': 10,
-            'display': 'inline-block'
+            "display": "inline-block"
         }
     ),
     html.Div(
@@ -207,8 +215,8 @@ app.layout = html.Div([
     html.Div(
         dcc.Graph(
             id='bond-position',
-            hoverData={'points': [{'customdata': 'NoData'}]}),
-        # hoverData={'points': [{'customdata': Portfolio_BOND['des'].head(1).item()}]}),
+            hoverData={'points': [{'customdata': 'NoData'}]}
+        ),
         style={
             'width': "45%",
             'padding': 10,
@@ -218,12 +226,19 @@ app.layout = html.Div([
         }
     ),
     html.Div([
-        dcc.Graph(id='bond-time-series-value'),
-        dcc.Graph(id='bond-time-series-position'),
+        dcc.Graph(id='bond-time-series-value',
+                  style={
+                      'margin': 5,
+                  }),
+        dcc.Graph(id='bond-time-series-position',
+                  style={
+                      'margin': 5,
+                  }
+                  ),
     ],
         style={
             'width': "45%",
-            'padding': 10,
+            'padding': 5,
             'border': 10,
             'margin': 10,
             "display": "inline-block"
@@ -261,26 +276,22 @@ def sync_checklists(account_selected, group_selected, all_selected):
     ctx = callback_context
     input_id = ctx.triggered[0]["prop_id"].split(".")[0]
     if input_id == "account-checklist":
-        if set(account_selected) == set(groups['groupA']):
-            group_selected = ["groupA"]
-        elif set(account_selected) == set(groups['groupB']):
-            group_selected = ["groupB"]
+        if set(account_selected) == set(options):
+            group_selected = group_options
+            all_selected = ["All"]
+        elif set(account_selected).issuperset(set(groups['with-stock'])):
+            group_selected = ["with-stock"]
+        elif set(account_selected).issuperset(set(groups['with-bond'])):
+            group_selected = ["with-bond"]
         else:
             group_selected = []
     elif input_id == "group-checklist":
-        if set(group_selected).issuperset(["groupA"]):
-            account_selected += groups.get("groupA")
-        else:
-            account_selected -= groups.get("groupA")
-        if set(group_selected).issuperset(["groupB"]):
-            account_selected += groups.get("groupB")
-        else:
-            account_selected -= groups.get("groupB")
-        #
-        # if group_selected == ["groupB"]:
-        #     account_selected += groups.get("groupB")
-        if set(group_selected) == set(group_options):
-            all_selected = ["All"]
+        if group_selected == ["with-stock"]:
+            account_selected += groups.get("with-stock")
+        elif group_selected == ["with-bond"]:
+            account_selected += groups.get("with-bond")
+        elif set(group_selected) == set(group_options):
+            account_selected = groups.get("with-bond") + groups.get("with-stock")
         else:
             account_selected = []
     else:
@@ -291,6 +302,7 @@ def sync_checklists(account_selected, group_selected, all_selected):
             all_selected = []
             group_selected = []
             account_selected = []
+
     return account_selected, group_selected, all_selected
 
 
@@ -303,32 +315,38 @@ def update_account_graphs(value):
     dff = dff.loc[dff['Account'].isin(value)]
     dfff = pd.DataFrame()
     for date in download_date_list:
-        for columns in ["NetLiquidation", "TotalCashValue", "StockValue", "BondValue"]:
-            dfff.loc[date, columns] = dff[dff["Date"] == date][columns].astype(float).sum()
+        for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
+            dfff.loc[date, column] = dff[dff["Date"] == date][column].astype(float).sum()
+
+    for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
+        hover_text = []
+        for index, row in dfff.iterrows():
+            hover_text.append((f"{column} : {row[column]:,.2f}<br>" +
+                               f"佔淨值比 : {row[column] / row['NetLiquidation'] if row['NetLiquidation'] != 0 else 0:.2%}<br>"))
+        dfff[f'{column}-des'] = hover_text
 
     return html.Div(
         [
             dcc.Graph(
                 id=column,
-                figure={
-                    "data": [
-                        {
-                            "x": download_date_list,
-                            "y": dfff[column],
-                            "type": "scatter+line",
-                            "marker": {"color": "#0074D9"},
-                        }
-                    ],
-                    "layout": {
+                figure=go.Figure(
+                    data=go.Scatter(x=dfff.index, y=dfff[column],
+                                    hovertext=dfff[f'{column}-des']),
+                    layout={
                         "xaxis": {"automargin": True},
                         "yaxis": {"automargin": True},
-                        'padding': 10,
-                        'border': 10,
                         "title": column,
-                        "margin": {"t": 50, "l": 10, "r": 10},
-                        "display": "inline-block",
-                    },
-                },
+                        "margin": {"t": 30, "l": 10, "r": 10},
+                    }
+                ),
+                style={
+                    'height': 400,
+                    'width': "45%",
+                    'padding': 5,
+                    'border': 5,
+                    "margin": 5,
+                    "display": "inline-block"
+                }
             )
             for column in ["NetLiquidation", "TotalCashValue", "StockValue", "BondValue"]
         ]
@@ -471,11 +489,7 @@ def update_bond_timeseries_value(hoverData):
 def update_bond_timeseries_position(hoverData):
     df = Portfolio_BOND
     des = hoverData['points'][0]['customdata']
-    print(des)
-    print(type(des))
-
     dff = df[df['des'] == des]
-    print(dff)
     column = 'position'
     return create_time_series(dff, column)
 
