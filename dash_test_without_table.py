@@ -140,9 +140,6 @@ Portfolio_OPT['des'] = Portfolio_OPT['Account'] + " : " + Portfolio_OPT['symbol'
 Portfolio_FUT['des'] = Portfolio_FUT['Account'] + " : " + Portfolio_FUT['symbol'] + " " + Portfolio_FUT[
     'lastTradeDate']
 
-print(Portfolio_OPT,
-      Portfolio_FUT)
-
 # make app
 app = dash.Dash()
 
