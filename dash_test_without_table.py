@@ -126,19 +126,31 @@ Portfolio_BOND = Porfolio_list(download_date_list)["Portfolio_BOND"]
 bond_account = Portfolio_BOND[Portfolio_BOND['Date'] == download_date_list[-1]]['Account'].unique()
 
 Portfolio_OPT = Porfolio_list(download_date_list)["Portfolio_OPT"]
+opt_account = Portfolio_OPT[Portfolio_OPT['Date'] == download_date_list[-1]]['Account'].unique()
+
 Portfolio_FUT = Porfolio_list(download_date_list)["Portfolio_FUT"]
+fut_account = Portfolio_FUT[Portfolio_FUT['Date'] == download_date_list[-1]]['Account'].unique()
 
 Portfolio_STK['des'] = Portfolio_STK['Account'] + " : " + Portfolio_STK['symbol']
 Portfolio_BOND['des'] = Portfolio_BOND['Account'] + " : " + Portfolio_BOND['symbol'] + " " + Portfolio_BOND[
     'lastTradeDate']
 Portfolio_BOND['position'] = Portfolio_BOND['position'] * 1000
+Portfolio_OPT['des'] = Portfolio_OPT['Account'] + " : " + Portfolio_OPT['symbol'] + " " + Portfolio_OPT[
+    'right'] + " " + Portfolio_OPT['strike'].astype(str) + " " + Portfolio_OPT['lastTradeDate']
+Portfolio_FUT['des'] = Portfolio_FUT['Account'] + " : " + Portfolio_FUT['symbol'] + " " + Portfolio_FUT[
+    'lastTradeDate']
+
+print(Portfolio_OPT,
+      Portfolio_FUT)
 
 # make app
 app = dash.Dash()
 
 options = check_AccountSummary.index
 groups = {'with-stock': list(stock_account),
-          'with-bond': list(bond_account)}
+          'with-bond': list(bond_account),
+          'with-opt': list(opt_account),
+          'with-fut': list(fut_account)}
 group_options = list(groups.keys())
 
 app.layout = html.Div([
@@ -155,15 +167,13 @@ app.layout = html.Div([
                 children=[
                     html.Div(
                         id='account-graph',
-                        style={
-                            'padding': 10,
-                            'border': 10,
-                            "margin": 10,
-                            "display": "inline-block"
-                        }
-                    )
+                        style={'padding': 10,
+                               'border': 10,
+                               "margin": 10,
+                               "display": "inline-block"})
                 ]
-            )]
+            )
+        ]
     ),
     html.Div(
         dcc.Slider(
@@ -172,83 +182,99 @@ app.layout = html.Div([
             step=1,
             id='date-slider',
             value=len(download_date_list) - 1,
-            marks={i: download_date_list[i] for i in range(len(download_date_list))}
-        ),
-        style={
-            'width': "45%",
-            'padding': 10,
-            'border': 10,
-            "margin": 10
-        }
-    ),
+            marks={i: download_date_list[i] for i in range(len(download_date_list))}),
+        style={'width': "45%",
+               'padding': 10,
+               'border': 10,
+               "margin": 10}),
     dcc.Tabs([
         dcc.Tab(label='Stock', children=[
             html.Div(
                 dcc.Graph(
                     id='stock-position',
                     hoverData={'points': [{'customdata': 'NoData'}]}),
-                style={
-                    'width': "45%",
-                    'padding': 10,
-                    'border': 10,
-                    "margin": 10,
-                    "display": "inline-block"
-                }
-            ),
-
+                style={'width': "45%",
+                       'padding': 10,
+                       'border': 10,
+                       "margin": 10,
+                       "display": "inline-block"}),
             html.Div([
                 dcc.Graph(id='stock-time-series-value',
-                          style={
-                              'margin': 5,
-                          }),
+                          style={'margin': 5}),
                 dcc.Graph(id='stock-time-series-position',
-                          style={
-                              'margin': 5,
-                          }
-                          ),
+                          style={'margin': 5})
             ],
-                style={
-                    'width': "45%",
-                    'padding': 5,
-                    'border': 10,
-                    'margin': 10,
-                    "display": "inline-block"
-                }
-            )]
-                ),
+                style={'width': "45%",
+                       'padding': 5,
+                       'border': 10,
+                       'margin': 10,
+                       "display": "inline-block"})]),
         dcc.Tab(label='Bond', children=[
             html.Div(
                 dcc.Graph(
                     id='bond-position',
-                    hoverData={'points': [{'customdata': 'NoData'}]}
-                ),
-                style={
-                    'width': "45%",
-                    'padding': 10,
-                    'border': 10,
-                    "margin": 10,
-                    "display": "inline-block"
-                }
-            ),
+                    hoverData={'points': [{'customdata': 'NoData'}]}),
+                style={'width': "45%",
+                       'padding': 10,
+                       'border': 10,
+                       'margin': 10,
+                       'display': "inline-block"}),
             html.Div([
                 dcc.Graph(id='bond-time-series-value',
+                          style={'margin': 5}),
+                dcc.Graph(id='bond-time-series-position',
+                          style={'margin': 5})],
+                style={'width': "45%",
+                       'padding': 5,
+                       'border': 10,
+                       'margin': 10,
+                       "display": "inline-block"})]
+                ),
+        dcc.Tab(label='OPT', children=[
+            html.Div(
+                dcc.Graph(id='opt-position',
+                          hoverData={'points': [{'customdata': 'NoData'}]}),
+                style={'width': "45%",
+                       'padding': 10,
+                       'border': 10,
+                       "margin": 10,
+                       "display": "inline-block"}),
+            html.Div([
+                dcc.Graph(id='opt-time-series-value',
                           style={
                               'margin': 5,
                           }),
-                dcc.Graph(id='bond-time-series-position',
+                dcc.Graph(id='opt-time-series-position',
+                          style={'margin': 5})],
+                style={'width': "45%",
+                       'padding': 5,
+                       'border': 10,
+                       'margin': 10,
+                       "display": "inline-block"})]),
+        dcc.Tab(label='FUT', children=[
+            html.Div(
+                dcc.Graph(id='fut-position',
+                          hoverData={'points': [{'customdata': 'NoData'}]}
+                          ),
+                style={'width': "45%",
+                       'padding': 10,
+                       'border': 10,
+                       "margin": 10,
+                       "display": "inline-block"}),
+            html.Div([
+                dcc.Graph(id='fut-time-series-value',
                           style={
                               'margin': 5,
-                          }
-                          ),
-            ],
-                style={
-                    'width': "45%",
-                    'padding': 5,
-                    'border': 10,
-                    'margin': 10,
-                    "display": "inline-block"
-                }
-            )]
+                          }),
+                dcc.Graph(id='fut-time-series-position',
+                          style={
+                              'margin': 5,
+                          })],
+                style={'width': "45%",
+                       'padding': 5,
+                       'border': 10,
+                       'margin': 10,
+                       "display": "inline-block"})]
                 )
     ])
 ]
@@ -274,6 +300,10 @@ def sync_checklists(account_selected, group_selected, all_selected):
             group_selected = ["with-stock"]
         elif set(account_selected).issuperset(set(groups['with-bond'])):
             group_selected = ["with-bond"]
+        elif set(account_selected).issuperset(set(groups['with-opt'])):
+            group_selected = ["with-opt"]
+        elif set(account_selected).issuperset(set(groups['with-fut'])):
+            group_selected = ["with-fut"]
         else:
             group_selected = []
     elif input_id == "group-checklist":
@@ -281,8 +311,13 @@ def sync_checklists(account_selected, group_selected, all_selected):
             account_selected += groups.get("with-stock")
         elif group_selected == ["with-bond"]:
             account_selected += groups.get("with-bond")
+        elif group_selected == ["with-opt"]:
+            account_selected += groups.get("with-opt")
+        elif group_selected == ["with-fut"]:
+            account_selected += groups.get("with-fut")
         elif set(group_selected) == set(group_options):
-            account_selected = groups.get("with-bond") + groups.get("with-stock")
+            account_selected = groups.get("with-bond") + groups.get("with-stock") + groups.get("with-opt") + groups.get(
+                "with-fut")
         else:
             account_selected = []
     else:
@@ -479,6 +514,122 @@ def update_bond_timeseries_value(hoverData):
 )
 def update_bond_timeseries_position(hoverData):
     df = Portfolio_BOND
+    des = hoverData['points'][0]['customdata']
+    dff = df[df['des'] == des]
+    column = 'position'
+    return create_time_series(dff, column)
+
+
+@app.callback(
+    Output('opt-position', "figure"),
+    Input('date-slider', 'value'),
+    Input('account-checklist', 'value')
+)
+def update_opt_graph(date_value, account_selected):
+    date = download_date_list[date_value]
+    df = Portfolio_OPT[Portfolio_OPT['Account'].isin(account_selected)]
+    dff = df[df['Date'] == date]
+
+    fig = px.scatter(dff,
+                     x=dff['marketValue'],
+                     y='unrealizedPNL',
+                     hover_name='des'
+                     )
+
+    fig.update_traces(customdata=dff['des'])
+
+    fig.update_layout(title='OPT Position',
+                      xaxis=dict(title='marketValue',
+                                 gridcolor='white',
+                                 gridwidth=2,
+                                 ),
+                      yaxis=dict(title='unrealizedPNL',
+                                 gridcolor='white',
+                                 gridwidth=2,
+                                 ),
+                      paper_bgcolor='rgb(243, 243, 243)',
+                      plot_bgcolor='rgb(243, 243, 243)',
+                      )
+
+    return fig
+
+
+@app.callback(
+    Output('opt-time-series-value', 'figure'),
+    Input('opt-position', 'hoverData')
+)
+def update_opt_timeseries_value(hoverData):
+    df = Portfolio_OPT
+    des = hoverData['points'][0]['customdata']
+    dff = df[df['des'] == des]
+    column = 'marketValue'
+    return create_time_series(dff, column)
+
+
+@app.callback(
+    Output('opt-time-series-position', 'figure'),
+    Input('opt-position', 'hoverData'),
+)
+def update_opt_timeseries_position(hoverData):
+    df = Portfolio_OPT
+    des = hoverData['points'][0]['customdata']
+    dff = df[df['des'] == des]
+    column = 'position'
+    return create_time_series(dff, column)
+
+
+@app.callback(
+    Output('fut-position', "figure"),
+    Input('date-slider', 'value'),
+    Input('account-checklist', 'value')
+)
+def update_fut_graph(date_value, account_selected):
+    date = download_date_list[date_value]
+    df = Portfolio_FUT[Portfolio_FUT['Account'].isin(account_selected)]
+    dff = df[df['Date'] == date]
+
+    fig = px.scatter(dff,
+                     x=dff['marketValue'],
+                     y='unrealizedPNL',
+                     hover_name='des'
+                     )
+
+    fig.update_traces(customdata=dff['des'])
+
+    fig.update_layout(title='FUT Position',
+                      xaxis=dict(title='marketValue',
+                                 gridcolor='white',
+                                 gridwidth=2,
+                                 ),
+                      yaxis=dict(title='unrealizedPNL',
+                                 gridcolor='white',
+                                 gridwidth=2,
+                                 ),
+                      paper_bgcolor='rgb(243, 243, 243)',
+                      plot_bgcolor='rgb(243, 243, 243)',
+                      )
+
+    return fig
+
+
+@app.callback(
+    Output('fut-time-series-value', 'figure'),
+    Input('fut-position', 'hoverData')
+)
+def update_fut_timeseries_value(hoverData):
+    df = Portfolio_FUT
+    des = hoverData['points'][0]['customdata']
+    dff = df[df['des'] == des]
+    column = 'marketValue'
+    return create_time_series(dff, column)
+
+
+@app.callback(
+    Output('fut-time-series-position', 'figure'),
+    Input('fut-position', 'hoverData'),
+)
+def update_fut_timeseries_position(hoverData):
+    df = Portfolio_FUT
     des = hoverData['points'][0]['customdata']
     dff = df[df['des'] == des]
     column = 'position'
