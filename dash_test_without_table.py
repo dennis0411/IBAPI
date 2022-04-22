@@ -155,10 +155,17 @@ app.layout = html.Div([
     html.Div(
         children=[
             html.Div([
-                dcc.Dropdown(group_options, ['All'], id='group-checklist',
+                dcc.Dropdown(group_options, ['All'],
+                             id='group-checklist',
                              style={'width': '95%', 'margin': 10, 'display': 'inline-block'},
-                             placeholder='select group'),
-                dcc.Dropdown(options, options, id='account-checklist', multi=True, style={'margin': 10}, placeholder='select account', searchable=True)
+                             placeholder='Select Group',
+                             clearable=True),
+                dcc.Dropdown(options, options,
+                             id='account-checklist',
+                             multi=True,
+                             style={'margin': 10},
+                             placeholder='Select Account',
+                             searchable=True)
             ],
                 style={'width': '15%',
                        'display': 'inline-block',
