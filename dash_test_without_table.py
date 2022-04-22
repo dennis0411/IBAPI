@@ -37,8 +37,7 @@ def read_AccountSummary(download_date):
         data = pd.DataFrame(account_data['data'])
         AccountSummary = pd.concat([AccountSummary, data], axis=0, ignore_index=True)
 
-    AccountSummary = AccountSummary.pivot(index="Account", columns="tag",
-                                          values='value')
+    AccountSummary = AccountSummary.pivot(index="Account", columns="tag", values='value')
 
     Portfolio = read_Portfolio(download_date)
 
@@ -159,38 +158,43 @@ group_options = list(groups.keys())
 
 app.layout = html.Div([
     html.Div(
-        className="row",
         children=[
             html.Div([
-                dcc.Checklist(["All"], [], id="all-checklist", inline=True),
-                dcc.Checklist(group_options, [], id="group-checklist", inline=True),
-                dcc.Checklist(options, [], id="account-checklist", inline=True)
-            ]
+                dcc.Checklist(['All'], ['All'], id='all-checklist', inline=True),
+                dcc.Checklist(group_options, [], id='group-checklist', inline=True),
+                dcc.Dropdown(options, [], id='account-checklist', multi=True)
+            ],
+                style={'width': '13%',
+                       'display': 'inline-block',
+                       'padding': 10,
+                       "margin": 10}
             ),
-            html.Div(
-                children=[
-                    html.Div(
-                        id='account-graph',
-                        style={'padding': 10,
-                               'border': 10,
-                               "margin": 10,
-                               "display": "inline-block"})
-                ]
-            )
-        ]
-    ),
-    html.Div(
-        dcc.Slider(
-            min=0,
-            max=len(download_date_list) - 1,
-            step=1,
-            id='date-slider',
-            value=len(download_date_list) - 1,
-            marks={i: download_date_list[i] for i in range(len(download_date_list))}),
-        style={'width': "45%",
-               'padding': 10,
-               'border': 10,
-               "margin": 10}),
+            html.Div([
+                dcc.Tabs([
+                    dcc.Tab(label='graph',
+                            children=[
+                                html.Div(
+                                    id='account-graph',
+                                    style={'display': 'inline-block'})
+                            ]
+                            ),
+                    dcc.Tab(label='table',
+                            children=[
+                                html.Div(
+                                    id='account-table',
+                                    style={'padding': 10,
+                                           'border': 10,
+                                           "margin": 10,
+                                           "display": "inline-block"})
+                            ]
+                            )]
+                )],
+                style={'width': '80%',
+                       "display": "inline-block",
+                       'padding': 10,
+                       'border': 10,
+                       "margin": 10}
+            )]),
     dcc.Tabs([
         dcc.Tab(label='Stock', children=[
             html.Div(
@@ -280,7 +284,19 @@ app.layout = html.Div([
                        'margin': 10,
                        "display": "inline-block"})]
                 )
-    ])
+    ]),
+    html.Div(
+        dcc.Slider(
+            min=0,
+            max=len(download_date_list) - 1,
+            step=1,
+            id='date-slider',
+            value=len(download_date_list) - 1,
+            marks={i: download_date_list[i] for i in range(len(download_date_list))}),
+        style={'width': "45%",
+               'padding': 10,
+               'border': 10,
+               "margin": 10})
 ]
 )
 
@@ -352,7 +368,7 @@ def update_account_graphs(value):
         hover_text = []
         for index, row in dfff.iterrows():
             hover_text.append((f"{column} : {row[column]:,.2f}<br>" +
-                               f"佔淨值比 : {row[column] / row['NetLiquidation'] if row['NetLiquidation'] != 0 else 0:.2%}<br>"))
+                               f"佔淨值比 : {row[column] / row['NetLiquidation'] if row['NetLiquidation'] != 0 else 0:.2%}"))
         dfff[f'{column}-des'] = hover_text
 
     return html.Div(
@@ -381,6 +397,32 @@ def update_account_graphs(value):
             for column in ["NetLiquidation", "TotalCashValue", "StockValue", "BondValue"]
         ]
     )
+
+
+@app.callback(
+    Output('account-table', 'children'),
+    Input('account-checklist', 'value')
+)
+def update_account_table(value):
+    df = check_AccountSummary
+    data = df.filter(items=value, axis=0).reset_index()
+
+    columns = [{"name": i, "id": i, "deletable": False, "selectable": True, "type": 'numeric',
+                "format": Format(precision=2, scheme=Scheme.fixed)} for i in
+               data.columns]
+    data = data.to_dict('records')
+
+    return dash_table.DataTable(
+        data=data,
+        columns=columns,
+        editable=False,
+        row_deletable=False,
+        filter_action='native',
+        selected_columns=[],
+        selected_rows=[],
+        page_action='native',
+        page_size=15,
+        page_current=0)
 
 
 @app.callback(
