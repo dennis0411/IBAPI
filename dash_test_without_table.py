@@ -97,8 +97,7 @@ def Porfolio_list(download_date_list):
 def read_all_AccountSummary(download_date_list):
     AccountSummary = pd.DataFrame()
     for download_date in download_date_list:
-        AccountSummary = pd.concat([read_AccountSummary(download_date).reset_index(), AccountSummary], axis=0,
-                                   ignore_index=True)
+        AccountSummary = pd.concat([read_AccountSummary(download_date).reset_index(), AccountSummary], axis=0, ignore_index=True)
     return AccountSummary
 
 
@@ -144,10 +143,11 @@ Portfolio_FUT = Portfolio_FUT.round(2)
 app = dash.Dash()
 
 options = check_AccountSummary.index
-groups = {'stock': list(stock_account),
-          'bond': list(bond_account),
-          'opt': list(opt_account),
-          'fut': list(fut_account)}
+groups = {'All': options,
+          'Stock': list(stock_account),
+          'Bond': list(bond_account),
+          'Opt': list(opt_account),
+          'Fut': list(fut_account)}
 
 group_options = list(groups.keys())
 
@@ -155,9 +155,10 @@ app.layout = html.Div([
     html.Div(
         children=[
             html.Div([
-                dcc.Checklist(['All'], ['All'], id='all-checklist', inline=True, style={'margin': 5}),
-                dcc.Checklist(group_options, [], id='group-checklist', inline=True, style={'margin': 5}),
-                dcc.Dropdown(options, [], id='account-checklist', multi=True, style={'margin': 5})
+                dcc.Dropdown(group_options, ['All'], id='group-checklist',
+                             style={'width': '95%', 'margin': 10, 'display': 'inline-block'},
+                             placeholder='select group'),
+                dcc.Dropdown(options, options, id='account-checklist', multi=True, style={'margin': 10}, placeholder='select account', searchable=True)
             ],
                 style={'width': '15%',
                        'display': 'inline-block',
@@ -248,51 +249,27 @@ app.layout = html.Div([
 @app.callback(
     Output('account-checklist', 'value'),
     Output('group-checklist', 'value'),
-    Output('all-checklist', 'value'),
     Input('account-checklist', 'value'),
     Input('group-checklist', 'value'),
-    Input('all-checklist', 'value'),
 )
-def sync_checklists(account_selected, group_selected, all_selected):
+def sync_checklists(account_selected, group_selected):
     ctx = callback_context
     input_id = ctx.triggered[0]['prop_id'].split('.')[0]
     if input_id == 'account-checklist':
         if set(account_selected) == set(options):
-            group_selected = group_options
-            all_selected = ['All']
-        elif set(account_selected).issuperset(set(groups['stock'])):
-            group_selected = ['stock']
-        elif set(account_selected).issuperset(set(groups['bond'])):
-            group_selected = ['bond']
-        elif set(account_selected).issuperset(set(groups['opt'])):
-            group_selected = ['opt']
-        elif set(account_selected).issuperset(set(groups['fut'])):
-            group_selected = ['fut']
-        else:
-            group_selected = []
-    elif input_id == 'group-checklist':
-        if group_selected == ['stock']:
-            account_selected += groups.get('stock')
-        elif group_selected == ['bond']:
-            account_selected += groups.get('bond')
-        elif group_selected == ['opt']:
-            account_selected += groups.get('opt')
-        elif group_selected == ['fut']:
-            account_selected += groups.get('fut')
-        elif set(group_selected) == set(group_options):
-            account_selected = groups.get('bond') + groups.get('stock') + groups.get('opt') + groups.get('fut')
-        else:
-            account_selected = []
-    else:
-        if all_selected:
-            account_selected = options
-            group_selected = group_options
-        else:
-            all_selected = []
-            group_selected = []
-            account_selected = []
+            group_selected = ['All']
 
-    return account_selected, group_selected, all_selected
+        else:
+            group_selected = []
+
+    elif input_id == 'group-checklist':
+        if group_selected == ['All']:
+            account_selected = options
+
+        else:
+            account_selected = groups.get(group_selected)
+
+    return account_selected, group_selected
 
 
 @app.callback(
@@ -322,7 +299,7 @@ def update_account_graphs(value):
                                            'title': column,
                                            'margin': {'t': 40, 'l': 10, 'r': 10}}),
                   style={'height': 400,
-                         'width': "47%",
+                         'width': "45%",
                          'margin': 5,
                          'display': 'inline-block'})
         for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue']])
