@@ -265,14 +265,12 @@ def sync_checklists(account_selected, group_selected):
     if input_id == 'account-checklist':
         if set(account_selected) == set(options):
             group_selected = ['All']
-
         else:
             group_selected = []
 
     elif input_id == 'group-checklist':
         if group_selected == ['All']:
             account_selected = options
-
         else:
             account_selected = groups.get(group_selected)
 
@@ -291,6 +289,9 @@ def update_account_graphs(value):
         for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
             dfff.loc[date, column] = dff[dff["Date"] == date][column].astype(float).sum()
 
+    dfff = dfff.reset_index().rename(columns={'index': 'Date'})
+    dfff['Date'] = pd.to_datetime(dfff['Date']).dt.strftime('%m/%d')
+
     for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
         hover_text = []
         for index, row in dfff.iterrows():
@@ -300,12 +301,12 @@ def update_account_graphs(value):
 
     return html.Div([
         dcc.Graph(id=column,
-                  figure=go.Figure(data=go.Scatter(x=dfff.index, y=dfff[column], hovertext=dfff[f'{column}-des']),
+                  figure=go.Figure(data=go.Scatter(x=dfff['Date'], y=dfff[column], hovertext=dfff[f'{column}-des']),
                                    layout={'xaxis': {'automargin': True},
                                            'yaxis': {'automargin': True},
                                            'title': column,
                                            'margin': {'t': 40, 'l': 10, 'r': 10}}),
-                  style={'height': 400,
+                  style={'height': 350,
                          'width': "45%",
                          'margin': 5,
                          'display': 'inline-block'})
@@ -368,7 +369,7 @@ def create_time_series(dff, column):
 
     fig.update_layout(xaxis=dict(title=None, gridcolor='white', gridwidth=2),
                       yaxis=dict(title=column, gridcolor='white', gridwidth=2),
-                      height=225,
+                      height=220,
                       margin={'l': 20, 'b': 30, 'r': 10, 't': 10},
                       paper_bgcolor='rgb(243, 243, 243)',
                       plot_bgcolor='rgb(243, 243, 243)')
