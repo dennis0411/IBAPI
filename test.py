@@ -480,9 +480,11 @@ def update_bond_maturity_graph(date_value, account_selected):
             maturity.append(('None'))
 
     dff['maturity'] = maturity
+    dff = pd.pivot_table(data=dff, index='Account', columns='maturity', values='position')
+    print(dff)
 
     fig = px.bar(dff,
-                 x='maturity',
+                 x=dff[['maturity']],
                  y='position',
                  color='Account'
                  )
