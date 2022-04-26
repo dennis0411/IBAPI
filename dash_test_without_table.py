@@ -138,6 +138,7 @@ Portfolio_STK = Portfolio_STK.round(2)
 Portfolio_BOND = Portfolio_BOND.round(2)
 Portfolio_OPT = Portfolio_OPT.round(2)
 Portfolio_FUT = Portfolio_FUT.round(2)
+print(Portfolio_BOND)
 
 # make app
 app = dash.Dash()
