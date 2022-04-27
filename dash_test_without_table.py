@@ -1,3 +1,4 @@
+import datetime
 import dash
 from dash import Dash, html, dash_table, dcc, callback_context
 import plotly.graph_objs as go
@@ -138,7 +139,6 @@ Portfolio_STK = Portfolio_STK.round(2)
 Portfolio_BOND = Portfolio_BOND.round(2)
 Portfolio_OPT = Portfolio_OPT.round(2)
 Portfolio_FUT = Portfolio_FUT.round(2)
-print(Portfolio_BOND)
 
 # make app
 app = dash.Dash()
@@ -215,9 +215,12 @@ app.layout = html.Div([
                         style={'width': "45%", 'padding': 10, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
                     html.Div([
                         dcc.Graph(id='bond-time-series-value', style={'margin': 5}),
-                        dcc.Graph(id='bond-time-series-position', style={'margin': 5})
-                    ],
-                        style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})]
+                        dcc.Graph(id='bond-time-series-position', style={'margin': 5})],
+                        style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
+                    html.Div([
+                        dcc.Graph(id='bond-maturity-position', style={'margin': 5})],
+                        style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})
+                ]
                 ),
         dcc.Tab(label='OPT',
                 children=[
@@ -226,8 +229,7 @@ app.layout = html.Div([
                         style={'width': '45%', 'padding': 10, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
                     html.Div([
                         dcc.Graph(id='opt-time-series-value', style={'margin': 5}),
-                        dcc.Graph(id='opt-time-series-position', style={'margin': 5})
-                    ],
+                        dcc.Graph(id='opt-time-series-position', style={'margin': 5})],
                         style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})]
                 ),
         dcc.Tab(label='FUT',
@@ -371,7 +373,7 @@ def create_time_series(dff, column):
     fig.update_layout(xaxis=dict(title=None, gridcolor='white', gridwidth=2),
                       yaxis=dict(title=column, gridcolor='white', gridwidth=2),
                       height=220,
-                      margin={'l': 20, 'b': 30, 'r': 10, 't': 10},
+                      margin={'l': 20, 'b': 20, 'r': 10, 't': 10},
                       paper_bgcolor='rgb(243, 243, 243)',
                       plot_bgcolor='rgb(243, 243, 243)')
 
@@ -451,6 +453,55 @@ def update_bond_timeseries_position(hoverData):
     dff = df[df['des'] == des]
     column = 'position'
     return create_time_series(dff, column)
+
+
+@app.callback(
+    Output('bond-maturity-position', 'figure'),
+    Input('date-slider', 'value'),
+    Input('account-checklist', 'value')
+)
+def update_bond_maturity_graph(date_value, account_selected):
+    date = download_date_list[date_value]
+    df = Portfolio_BOND[Portfolio_BOND['Account'].isin(account_selected)]
+    dff = df[df['Date'] == date]
+    year = datetime.date.today().strftime('%Y')
+
+    maturity = []
+    for index, row in dff.iterrows():
+        maturity_period = float(row['lastTradeDate'][:4]) - float(year)
+        if maturity_period <= 5:
+            maturity.append(('1~5y'))
+        elif maturity_period > 5 and maturity_period <= 10:
+            maturity.append(('5~10y'))
+        elif maturity_period > 10:
+            maturity.append(('10y+'))
+        else:
+            maturity.append(('None'))
+
+    dff['maturity'] = maturity
+
+    data = []
+    for account in dff['Account'].unique():
+        for maturity in ['1~5y', '5~10y', '10y+']:
+            position = dff.loc[(dff['Account'] == account) & (dff['maturity'] == maturity), 'position'].sum()
+            data.append((account, maturity, position))
+
+    dfff = pd.DataFrame(data, columns=['Account', 'maturity', 'position'])
+    dfff.round(2)
+
+    fig = px.bar(dfff,
+                 x='maturity',
+                 y='position',
+                 color='Account'
+                 )
+
+    fig.update_layout(title='Bond Position Maturity',
+                      xaxis=dict(title='maturity', gridcolor='white', gridwidth=2),
+                      yaxis=dict(title='position', gridcolor='white', gridwidth=2),
+                      paper_bgcolor='rgb(243, 243, 243)',
+                      plot_bgcolor='rgb(243, 243, 243)')
+
+    return fig
 
 
 @app.callback(

@@ -220,7 +220,7 @@ app.layout = html.Div([
                         style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
                     html.Div([
                         dcc.Graph(id='bond-maturity-position', style={'margin': 5})],
-                        style={'width': '80%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})
+                        style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})
                 ]
                 ),
         dcc.Tab(label='OPT',
@@ -374,7 +374,7 @@ def create_time_series(dff, column):
     fig.update_layout(xaxis=dict(title=None, gridcolor='white', gridwidth=2),
                       yaxis=dict(title=column, gridcolor='white', gridwidth=2),
                       height=220,
-                      margin={'l': 20, 'b': 30, 'r': 10, 't': 10},
+                      margin={'l': 20, 'b': 20, 'r': 10, 't': 10},
                       paper_bgcolor='rgb(243, 243, 243)',
                       plot_bgcolor='rgb(243, 243, 243)')
 
@@ -480,16 +480,20 @@ def update_bond_maturity_graph(date_value, account_selected):
             maturity.append(('None'))
 
     dff['maturity'] = maturity
-    dff = pd.pivot_table(data=dff, index='Account', columns='maturity', values='position')
-    print(dff)
 
-    fig = px.bar(dff,
-                 x=dff[['maturity']],
+    data = []
+    for account in dff['Account'].unique():
+        for maturity in ['1~5y', '5~10y', '10y+']:
+            position = dff.loc[(dff['Account'] == account) & (dff['maturity'] == maturity), 'position'].sum()
+            data.append((account, maturity, position))
+
+    dfff = pd.DataFrame(data, columns=['Account', 'maturity', 'position'])
+
+    fig = px.bar(dfff,
+                 x='maturity',
                  y='position',
                  color='Account'
                  )
-
-    fig.update_traces(customdata=dff['des'])
 
     fig.update_layout(title='Bond Position Maturity',
                       xaxis=dict(title='maturity', gridcolor='white', gridwidth=2),
