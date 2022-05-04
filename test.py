@@ -347,8 +347,8 @@ def update_account_table(value):
     Input('account-checklist', 'value')
 )
 def update_stock_graph(date_value, account_selected):
-    date0 = download_date_list[date_value[0]]
-    date1 = download_date_list[date_value[1]]
+    date0 = download_date_list[date_value[1]]
+    date1 = download_date_list[date_value[0]]
     df = Portfolio_STK[Portfolio_STK['Account'].isin(account_selected)]
     dff = df[df['Date'] == date0]
     dfff = df[df['Date'] == date1]
@@ -435,8 +435,8 @@ def update_stock_timeseries_position(hoverData):
     Input('account-checklist', 'value')
 )
 def update_bond_graph(date_value, account_selected):
-    date0 = download_date_list[date_value[0]]
-    date1 = download_date_list[date_value[1]]
+    date0 = download_date_list[date_value[1]]
+    date1 = download_date_list[date_value[0]]
     df = Portfolio_BOND[Portfolio_BOND['Account'].isin(account_selected)]
     dff = df[df['Date'] == date0]
     dfff = df[df['Date'] == date1]
