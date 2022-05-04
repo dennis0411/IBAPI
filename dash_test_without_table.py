@@ -222,27 +222,27 @@ app.layout = html.Div([
                         style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})
                 ]
                 ),
-        dcc.Tab(label='OPT',
-                children=[
-                    html.Div(
-                        dcc.Graph(id='opt-position', hoverData={'points': [{'customdata': 'NoData'}]}),
-                        style={'width': '45%', 'padding': 10, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
-                    html.Div([
-                        dcc.Graph(id='opt-time-series-value', style={'margin': 5}),
-                        dcc.Graph(id='opt-time-series-position', style={'margin': 5})],
-                        style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})]
-                ),
-        dcc.Tab(label='FUT',
-                children=[
-                    html.Div(
-                        dcc.Graph(id='fut-position', hoverData={'points': [{'customdata': 'NoData'}]}),
-                        style={'width': '45%', 'padding': 10, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
-                    html.Div([
-                        dcc.Graph(id='fut-time-series-value', style={'margin': 5}),
-                        dcc.Graph(id='fut-time-series-position', style={'margin': 5})
-                    ],
-                        style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})]
-                )
+        # dcc.Tab(label='OPT',
+        #         children=[
+        #             html.Div(
+        #                 dcc.Graph(id='opt-position', hoverData={'points': [{'customdata': 'NoData'}]}),
+        #                 style={'width': '45%', 'padding': 10, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
+        #             html.Div([
+        #                 dcc.Graph(id='opt-time-series-value', style={'margin': 5}),
+        #                 dcc.Graph(id='opt-time-series-position', style={'margin': 5})],
+        #                 style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})]
+        #         ),
+        # dcc.Tab(label='FUT',
+        #         children=[
+        #             html.Div(
+        #                 dcc.Graph(id='fut-position', hoverData={'points': [{'customdata': 'NoData'}]}),
+        #                 style={'width': '45%', 'padding': 10, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
+        #             html.Div([
+        #                 dcc.Graph(id='fut-time-series-value', style={'margin': 5}),
+        #                 dcc.Graph(id='fut-time-series-position', style={'margin': 5})
+        #             ],
+        #                 style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})]
+        #         )
     ]),
     html.Div(
         dcc.Slider(min=0,
@@ -350,13 +350,26 @@ def update_stock_graph(date_value, account_selected):
     date = download_date_list[date_value]
     df = Portfolio_STK[Portfolio_STK['Account'].isin(account_selected)]
     dff = df[df['Date'] == date]
+    dfff = df[df['Date'] == download_date_list[0]]
 
-    fig = px.scatter(dff, x=dff['marketValue'], y='unrealizedPNL', hover_name='des')
+    pricechg = []
+    for des in dff['des']:
+        data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
+        pricechg.append((data))
+
+    dff['pricechg'] = pricechg
+
+    fig = px.scatter(dff,
+                     x='pricechg',
+                     y='unrealizedPNL',
+                     size='marketValue',
+                     hover_name='des',
+                     size_max=60)
 
     fig.update_traces(customdata=dff['des'])
 
     fig.update_layout(title='Stock Position',
-                      xaxis=dict(title='marketValue', gridcolor='white', gridwidth=2),
+                      xaxis=dict(title='Price Change', gridcolor='white', gridwidth=2),
                       yaxis=dict(title='unrealizedPNL', gridcolor='white', gridwidth=2),
                       paper_bgcolor='rgb(243, 243, 243)',
                       plot_bgcolor='rgb(243, 243, 243)')
@@ -424,17 +437,25 @@ def update_bond_graph(date_value, account_selected):
     date = download_date_list[date_value]
     df = Portfolio_BOND[Portfolio_BOND['Account'].isin(account_selected)]
     dff = df[df['Date'] == date]
+    dfff = df[df['Date'] == download_date_list[0]]
+
+    pricechg = []
+    for des in dff['des']:
+        data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
+        pricechg.append((data))
+
+    dff['pricechg'] = pricechg
 
     fig = px.scatter(dff,
-                     x=dff['marketValue'],
+                     x='pricechg',
                      y='unrealizedPNL',
-                     hover_name='des'
-                     )
+                     size='marketValue',
+                     hover_name='des')
 
     fig.update_traces(customdata=dff['des'])
 
     fig.update_layout(title='Bond Position',
-                      xaxis=dict(title='marketValue', gridcolor='white', gridwidth=2),
+                      xaxis=dict(title='Price Change', gridcolor='white', gridwidth=2),
                       yaxis=dict(title='unrealizedPNL', gridcolor='white', gridwidth=2),
                       paper_bgcolor='rgb(243, 243, 243)',
                       plot_bgcolor='rgb(243, 243, 243)')
@@ -515,120 +536,123 @@ def update_bond_maturity_graph(date_value, account_selected):
     return fig
 
 
-@app.callback(
-    Output('opt-position', "figure"),
-    Input('date-slider', 'value'),
-    Input('account-checklist', 'value')
-)
-def update_opt_graph(date_value, account_selected):
-    date = download_date_list[date_value]
-    df = Portfolio_OPT[Portfolio_OPT['Account'].isin(account_selected)]
-    dff = df[df['Date'] == date]
-
-    fig = px.scatter(dff,
-                     x=dff['marketValue'],
-                     y='unrealizedPNL',
-                     hover_name='des'
-                     )
-
-    fig.update_traces(customdata=dff['des'])
-
-    fig.update_layout(title='OPT Position',
-                      xaxis=dict(title='marketValue',
-                                 gridcolor='white',
-                                 gridwidth=2,
-                                 ),
-                      yaxis=dict(title='unrealizedPNL',
-                                 gridcolor='white',
-                                 gridwidth=2,
-                                 ),
-                      paper_bgcolor='rgb(243, 243, 243)',
-                      plot_bgcolor='rgb(243, 243, 243)'
-                      )
-
-    return fig
-
-
-@app.callback(
-    Output('opt-time-series-value', 'figure'),
-    Input('opt-position', 'hoverData')
-)
-def update_opt_timeseries_value(hoverData):
-    df = Portfolio_OPT
-    des = hoverData['points'][0]['customdata']
-    dff = df[df['des'] == des]
-    column = 'marketValue'
-    return create_time_series(dff, column)
-
-
-@app.callback(
-    Output('opt-time-series-position', 'figure'),
-    Input('opt-position', 'hoverData'),
-)
-def update_opt_timeseries_position(hoverData):
-    df = Portfolio_OPT
-    des = hoverData['points'][0]['customdata']
-    dff = df[df['des'] == des]
-    column = 'position'
-    return create_time_series(dff, column)
-
-
-@app.callback(
-    Output('fut-position', 'figure'),
-    Input('date-slider', 'value'),
-    Input('account-checklist', 'value')
-)
-def update_fut_graph(date_value, account_selected):
-    date = download_date_list[date_value]
-    df = Portfolio_FUT[Portfolio_FUT['Account'].isin(account_selected)]
-    dff = df[df['Date'] == date]
-
-    fig = px.scatter(dff,
-                     x=dff['marketValue'],
-                     y='unrealizedPNL',
-                     hover_name='des'
-                     )
-
-    fig.update_traces(customdata=dff['des'])
-
-    fig.update_layout(title='FUT Position',
-                      xaxis=dict(title='marketValue',
-                                 gridcolor='white',
-                                 gridwidth=2,
-                                 ),
-                      yaxis=dict(title='unrealizedPNL',
-                                 gridcolor='white',
-                                 gridwidth=2,
-                                 ),
-                      paper_bgcolor='rgb(243, 243, 243)',
-                      plot_bgcolor='rgb(243, 243, 243)',
-                      )
-
-    return fig
-
-
-@app.callback(
-    Output('fut-time-series-value', 'figure'),
-    Input('fut-position', 'hoverData')
-)
-def update_fut_timeseries_value(hoverData):
-    df = Portfolio_FUT
-    des = hoverData['points'][0]['customdata']
-    dff = df[df['des'] == des]
-    column = 'marketValue'
-    return create_time_series(dff, column)
-
-
-@app.callback(
-    Output('fut-time-series-position', 'figure'),
-    Input('fut-position', 'hoverData'),
-)
-def update_fut_timeseries_position(hoverData):
-    df = Portfolio_FUT
-    des = hoverData['points'][0]['customdata']
-    dff = df[df['des'] == des]
-    column = 'position'
-    return create_time_series(dff, column)
+# @app.callback(
+#     Output('opt-position', "figure"),
+#     Input('date-slider', 'value'),
+#     Input('account-checklist', 'value')
+# )
+# def update_opt_graph(date_value, account_selected):
+#     date = download_date_list[date_value]
+#     df = Portfolio_OPT[Portfolio_OPT['Account'].isin(account_selected)]
+#     dff = df[df['Date'] == date]
+#     dfff = df[df['Date'] == download_date_list[0]]
+#
+#     pricechg = []
+#     for des in dff['des']:
+#         data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
+#         pricechg.append((data))
+#
+#     dff['pricechg'] = pricechg
+#
+#     fig = px.scatter(dff,
+#                      x='pricechg',
+#                      y='unrealizedPNL',
+#                      size='marketValue',
+#                      hover_name='des')
+#
+#     fig.update_traces(customdata=dff['des'])
+#
+#     fig.update_layout(title='OPT Position',
+#                       xaxis=dict(title='Price Change', gridcolor='white', gridwidth=2),
+#                       yaxis=dict(title='unrealizedPNL', gridcolor='white', gridwidth=2),
+#                       paper_bgcolor='rgb(243, 243, 243)',
+#                       plot_bgcolor='rgb(243, 243, 243)')
+#
+#     return fig
+#
+#
+# @app.callback(
+#     Output('opt-time-series-value', 'figure'),
+#     Input('opt-position', 'hoverData')
+# )
+# def update_opt_timeseries_value(hoverData):
+#     df = Portfolio_OPT
+#     des = hoverData['points'][0]['customdata']
+#     dff = df[df['des'] == des]
+#     column = 'marketValue'
+#     return create_time_series(dff, column)
+#
+#
+# @app.callback(
+#     Output('opt-time-series-position', 'figure'),
+#     Input('opt-position', 'hoverData'),
+# )
+# def update_opt_timeseries_position(hoverData):
+#     df = Portfolio_OPT
+#     des = hoverData['points'][0]['customdata']
+#     dff = df[df['des'] == des]
+#     column = 'position'
+#     return create_time_series(dff, column)
+#
+#
+# @app.callback(
+#     Output('fut-position', 'figure'),
+#     Input('date-slider', 'value'),
+#     Input('account-checklist', 'value')
+# )
+# def update_fut_graph(date_value, account_selected):
+#     date = download_date_list[date_value]
+#     df = Portfolio_FUT[Portfolio_FUT['Account'].isin(account_selected)]
+#     dff = df[df['Date'] == date]
+#     dfff = df[df['Date'] == download_date_list[0]]
+#     print(dff)
+#
+#     pricechg = []
+#     for des in dff['des']:
+#         data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
+#         pricechg.append((data))
+#
+#     dff['pricechg'] = pricechg
+#
+#     fig = px.scatter(dff,
+#                      x='pricechg',
+#                      y='unrealizedPNL',
+#                      size='marketValue',
+#                      hover_name='des')
+#
+#     fig.update_traces(customdata=dff['des'])
+#
+#     fig.update_layout(title='FUT Position',
+#                       xaxis=dict(title='Price Change', gridcolor='white', gridwidth=2),
+#                       yaxis=dict(title='unrealizedPNL', gridcolor='white', gridwidth=2),
+#                       paper_bgcolor='rgb(243, 243, 243)',
+#                       plot_bgcolor='rgb(243, 243, 243)')
+#
+#     return fig
+#
+#
+# @app.callback(
+#     Output('fut-time-series-value', 'figure'),
+#     Input('fut-position', 'hoverData')
+# )
+# def update_fut_timeseries_value(hoverData):
+#     df = Portfolio_FUT
+#     des = hoverData['points'][0]['customdata']
+#     dff = df[df['des'] == des]
+#     column = 'marketValue'
+#     return create_time_series(dff, column)
+#
+#
+# @app.callback(
+#     Output('fut-time-series-position', 'figure'),
+#     Input('fut-position', 'hoverData'),
+# )
+# def update_fut_timeseries_position(hoverData):
+#     df = Portfolio_FUT
+#     des = hoverData['points'][0]['customdata']
+#     dff = df[df['des'] == des]
+#     column = 'position'
+#     return create_time_series(dff, column)
 
 
 if __name__ == "__main__":
