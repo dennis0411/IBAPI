@@ -294,11 +294,15 @@ def update_account_graphs(value):
 
     dfff = dfff.reset_index().rename(columns={'index': 'Date'})
     dfff['Date'] = pd.to_datetime(dfff['Date']).dt.strftime('%m/%d')
+    print(dfff)
 
     for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
         hover_text = []
+        base = dfff.loc[0, column].item()
+        print(base)
         for index, row in dfff.iterrows():
             hover_text.append((f"{column} : {row[column]:,.2f}<br>" +
+                               f"期間變化 : {row[column] / base - 1 :.2%}<br>" +
                                f"佔淨值比 : {row[column] / row['NetLiquidation'] if row['NetLiquidation'] != 0 else 0:.2%}"))
         dfff[f'{column}-des'] = hover_text
 

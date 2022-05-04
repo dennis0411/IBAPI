@@ -1,5 +1,4 @@
 import datetime
-
 import dash
 from dash import Dash, html, dash_table, dcc, callback_context
 import plotly.graph_objs as go
@@ -295,11 +294,15 @@ def update_account_graphs(value):
 
     dfff = dfff.reset_index().rename(columns={'index': 'Date'})
     dfff['Date'] = pd.to_datetime(dfff['Date']).dt.strftime('%m/%d')
+    print(dfff)
 
     for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
         hover_text = []
+        base = dfff.loc[0, column].item()
+        print(base)
         for index, row in dfff.iterrows():
             hover_text.append((f"{column} : {row[column]:,.2f}<br>" +
+                               f"期間變化 : {row[column] / base - 1 :.2%}<br>" +
                                f"佔淨值比 : {row[column] / row['NetLiquidation'] if row['NetLiquidation'] != 0 else 0:.2%}"))
         dfff[f'{column}-des'] = hover_text
 
@@ -488,6 +491,7 @@ def update_bond_maturity_graph(date_value, account_selected):
             data.append((account, maturity, position))
 
     dfff = pd.DataFrame(data, columns=['Account', 'maturity', 'position'])
+    dfff.round(2)
 
     fig = px.bar(dfff,
                  x='maturity',
