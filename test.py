@@ -355,7 +355,7 @@ def update_stock_graph(date_value, account_selected):
     pricechg = []
     for des in dff['des']:
         data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
-        pricechg.append((data))
+        pricechg.append((round(data,4)))
 
     dff['pricechg'] = pricechg
 
@@ -442,7 +442,7 @@ def update_bond_graph(date_value, account_selected):
     pricechg = []
     for des in dff['des']:
         data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
-        pricechg.append((data))
+        pricechg.append((round(data,4)))
 
     dff['pricechg'] = pricechg
 
