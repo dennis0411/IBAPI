@@ -217,9 +217,9 @@ app.layout = html.Div([
                         dcc.Graph(id='bond-time-series-value', style={'margin': 5}),
                         dcc.Graph(id='bond-time-series-position', style={'margin': 5})],
                         style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
-                    html.Div([
-                        dcc.Graph(id='bond-maturity-position', style={'margin': 5})],
-                        style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})
+                    # html.Div([
+                    #     dcc.Graph(id='bond-maturity-position', style={'margin': 5})],
+                    #     style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})
                 ]
                 ),
         # dcc.Tab(label='OPT',
@@ -245,12 +245,12 @@ app.layout = html.Div([
         #         )
     ]),
     html.Div(
-        dcc.Slider(min=0,
-                   max=len(download_date_list) - 1,
-                   step=1,
-                   id='date-slider',
-                   value=len(download_date_list) - 1,
-                   marks={i: download_date_list[i] for i in range(len(download_date_list))}),
+        dcc.RangeSlider(min=0,
+                        max=len(download_date_list) - 1,
+                        step=1,
+                        id='date-slider',
+                        value=[0, len(download_date_list) - 1],
+                        marks={i: download_date_list[i] for i in range(len(download_date_list))}),
         style={'width': '45%', 'padding': 10, 'border': 10, 'margin': 10})
 ]
 )
@@ -343,19 +343,20 @@ def update_account_table(value):
 
 @app.callback(
     Output('stock-position', 'figure'),
-    Input('date-slider', 'value'),
+    [Input('date-slider', 'value')],
     Input('account-checklist', 'value')
 )
 def update_stock_graph(date_value, account_selected):
-    date = download_date_list[date_value]
+    date0 = download_date_list[date_value[0]]
+    date1 = download_date_list[date_value[1]]
     df = Portfolio_STK[Portfolio_STK['Account'].isin(account_selected)]
-    dff = df[df['Date'] == date]
-    dfff = df[df['Date'] == download_date_list[0]]
+    dff = df[df['Date'] == date0]
+    dfff = df[df['Date'] == date1]
 
     pricechg = []
     for des in dff['des']:
         data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
-        pricechg.append((round(data,4)))
+        pricechg.append((round(data, 4)))
 
     dff['pricechg'] = pricechg
 
@@ -430,19 +431,20 @@ def update_stock_timeseries_position(hoverData):
 
 @app.callback(
     Output('bond-position', 'figure'),
-    Input('date-slider', 'value'),
+    [Input('date-slider', 'value')],
     Input('account-checklist', 'value')
 )
 def update_bond_graph(date_value, account_selected):
-    date = download_date_list[date_value]
+    date0 = download_date_list[date_value[0]]
+    date1 = download_date_list[date_value[1]]
     df = Portfolio_BOND[Portfolio_BOND['Account'].isin(account_selected)]
-    dff = df[df['Date'] == date]
-    dfff = df[df['Date'] == download_date_list[0]]
+    dff = df[df['Date'] == date0]
+    dfff = df[df['Date'] == date1]
 
     pricechg = []
     for des in dff['des']:
         data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
-        pricechg.append((round(data,4)))
+        pricechg.append((round(data, 4)))
 
     dff['pricechg'] = pricechg
 
@@ -493,7 +495,7 @@ def update_bond_timeseries_position(hoverData):
     Input('account-checklist', 'value')
 )
 def update_bond_maturity_graph(date_value, account_selected):
-    date = download_date_list[date_value]
+    date = download_date_list[date_value[1]]
     df = Portfolio_BOND[Portfolio_BOND['Account'].isin(account_selected)]
     dff = df[df['Date'] == date]
     year = datetime.date.today().strftime('%Y')
