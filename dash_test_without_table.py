@@ -294,12 +294,10 @@ def update_account_graphs(value):
 
     dfff = dfff.reset_index().rename(columns={'index': 'Date'})
     dfff['Date'] = pd.to_datetime(dfff['Date']).dt.strftime('%m/%d')
-    print(dfff)
 
     for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
         hover_text = []
         base = dfff.loc[0, column].item()
-        print(base)
         for index, row in dfff.iterrows():
             hover_text.append((f"{column} : {row[column]:,.2f}<br>" +
                                f"期間變化 : {row[column] / base - 1 :.2%}<br>" +
@@ -370,7 +368,16 @@ def create_time_series(dff, column):
     dfff = dff.copy()
     dfff['Date'] = pd.to_datetime(dff['Date']).dt.strftime('%m/%d')
 
-    fig = px.scatter(dfff, x='Date', y=column, hover_name='des')
+    hover_text = []
+    df = dfff[column].values.tolist()
+    base = df[0]
+
+    for index, row in dfff.iterrows():
+        hover_text.append((f" {row[column] / base - 1 :.2%}"))
+
+    dfff['change'] = hover_text
+
+    fig = px.scatter(dfff, x='Date', y=column, hover_name='des', hover_data=['change'])
 
     fig.update_traces(mode='lines+markers')
 
