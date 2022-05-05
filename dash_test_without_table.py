@@ -358,16 +358,18 @@ def update_stock_graph(date_value, account_selected):
         data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
         pricechg.append((round(data, 4)))
 
-    dff['pricechg'] = pricechg
+    dfff = dff.copy()
 
-    fig = px.scatter(dff,
+    dfff.loc[:, 'pricechg'] = pricechg
+
+    fig = px.scatter(dfff,
                      x='pricechg',
                      y='unrealizedPNL',
                      size='marketValue',
                      hover_name='des',
                      size_max=60)
 
-    fig.update_traces(customdata=dff['des'])
+    fig.update_traces(customdata=dfff['des'])
 
     fig.update_layout(title='Stock Position',
                       xaxis=dict(title='Price Change', gridcolor='white', gridwidth=2),
@@ -446,15 +448,17 @@ def update_bond_graph(date_value, account_selected):
         data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
         pricechg.append((round(data, 4)))
 
-    dff['pricechg'] = pricechg
+    dfff = dff.copy()
 
-    fig = px.scatter(dff,
+    dfff.loc[:, 'pricechg'] = pricechg
+
+    fig = px.scatter(dfff,
                      x='pricechg',
                      y='unrealizedPNL',
                      size='marketValue',
                      hover_name='des')
 
-    fig.update_traces(customdata=dff['des'])
+    fig.update_traces(customdata=dfff['des'])
 
     fig.update_layout(title='Bond Position',
                       xaxis=dict(title='Price Change', gridcolor='white', gridwidth=2),
