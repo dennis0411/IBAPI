@@ -216,33 +216,9 @@ app.layout = html.Div([
                     html.Div([
                         dcc.Graph(id='bond-time-series-value', style={'margin': 5}),
                         dcc.Graph(id='bond-time-series-position', style={'margin': 5})],
-                        style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
-                    # html.Div([
-                    #     dcc.Graph(id='bond-maturity-position', style={'margin': 5})],
-                    #     style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})
+                        style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})
                 ]
-                ),
-        # dcc.Tab(label='OPT',
-        #         children=[
-        #             html.Div(
-        #                 dcc.Graph(id='opt-position', hoverData={'points': [{'customdata': 'NoData'}]}),
-        #                 style={'width': '45%', 'padding': 10, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
-        #             html.Div([
-        #                 dcc.Graph(id='opt-time-series-value', style={'margin': 5}),
-        #                 dcc.Graph(id='opt-time-series-position', style={'margin': 5})],
-        #                 style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})]
-        #         ),
-        # dcc.Tab(label='FUT',
-        #         children=[
-        #             html.Div(
-        #                 dcc.Graph(id='fut-position', hoverData={'points': [{'customdata': 'NoData'}]}),
-        #                 style={'width': '45%', 'padding': 10, 'border': 10, 'margin': 10, 'display': 'inline-block'}),
-        #             html.Div([
-        #                 dcc.Graph(id='fut-time-series-value', style={'margin': 5}),
-        #                 dcc.Graph(id='fut-time-series-position', style={'margin': 5})
-        #             ],
-        #                 style={'width': '45%', 'padding': 5, 'border': 10, 'margin': 10, 'display': 'inline-block'})]
-        #         )
+                )
     ]),
     html.Div(
         dcc.RangeSlider(min=0,
@@ -294,7 +270,6 @@ def update_account_graphs(value):
 
     dfff = dfff.reset_index().rename(columns={'index': 'Date'})
     dfff['Date'] = pd.to_datetime(dfff['Date']).dt.strftime('%m/%d')
-    print(dfff)
 
     for column in ['NetLiquidation', 'TotalCashValue', 'StockValue', 'BondValue']:
         hover_text = []
@@ -324,8 +299,63 @@ def update_account_graphs(value):
     Input('account-checklist', 'value')
 )
 def update_account_table(value):
-    df = check_AccountSummary
+    df = read_AccountSummary(download_date_list[-1])
+    df_1 = read_AccountSummary(download_date_list[-2])
+    df_5 = read_AccountSummary(download_date_list[-6])
+    df_10 = read_AccountSummary(download_date_list[-11])
+
     data = df.filter(items=value, axis=0).reset_index()
+    data_1 = df_1.filter(items=value, axis=0).reset_index()
+    data_5 = df_5.filter(items=value, axis=0).reset_index()
+    data_10 = df_10.filter(items=value, axis=0).reset_index()
+
+    pricechg_1 = []
+    for account in data['Account']:
+        if account in data_1['Account'].tolist():
+            if float(data_1.loc[data_1['Account'] == account, 'NetLiquidation'].item()) == 0:
+                pricechg = 0
+            else:
+                pricechg = f'{float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_1.loc[data_1["Account"] == account, "NetLiquidation"].item()) - 1:.2%}'
+        else:
+            pricechg = 0
+        pricechg_1.append((pricechg))
+    data['chg_1d'] = pricechg_1
+
+    pricechg_5 = []
+    for account in data['Account']:
+        if account in data_5['Account'].tolist():
+            if float(data_5.loc[data_5['Account'] == account, 'NetLiquidation'].item()) == 0:
+                pricechg = 0
+            else:
+                pricechg = f'{float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_5.loc[data_5["Account"] == account, "NetLiquidation"].item()) - 1:.2%}'
+        else:
+            pricechg = 0
+        pricechg_5.append((pricechg))
+    data['chg_5d'] = pricechg_5
+
+    pricechg_10 = []
+    for account in data['Account']:
+        if account in data_10['Account'].tolist():
+            if float(data_10.loc[data_10['Account'] == account, 'NetLiquidation'].item()) == 0:
+                pricechg = 0
+            else:
+                pricechg = f'{float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_10.loc[data_10["Account"] == account, "NetLiquidation"].item()) - 1:.2%}'
+        else:
+            pricechg = 0
+        pricechg_10.append((pricechg))
+    data['chg_10d'] = pricechg_10
+
+    for column in ['TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
+        for account in data['Account']:
+            if float(data.loc[data['Account'] == account, 'NetLiquidation'].item()) == 0:
+                data.loc[data['Account'] == account, f'{column}-%'] = 0
+            else:
+                data.loc[data[
+                             'Account'] == account, f'{column}-%'] = f"{float(data.loc[data['Account'] == account, column].item()) / float(data.loc[data['Account'] == account, 'NetLiquidation'].item()):.2%}"
+
+
+    data = data.loc[:, ['Account', 'NetLiquidation', 'chg_1d', 'chg_5d', 'chg_10d', 'TotalCashValue-%', 'StockValue-%', 'BondValue-%', 'OPTValue-%', 'FUTValue-%']]
+    print(data)
 
     columns = [{'name': i, 'id': i, 'deletable': False, 'selectable': True, 'type': 'numeric', 'format': Format(precision=2, scheme=Scheme.fixed)} for i in data.columns]
     data = data.to_dict('records')
@@ -541,125 +571,6 @@ def update_bond_maturity_graph(date_value, account_selected):
                       plot_bgcolor='rgb(243, 243, 243)')
 
     return fig
-
-
-# @app.callback(
-#     Output('opt-position', "figure"),
-#     Input('date-slider', 'value'),
-#     Input('account-checklist', 'value')
-# )
-# def update_opt_graph(date_value, account_selected):
-#     date = download_date_list[date_value]
-#     df = Portfolio_OPT[Portfolio_OPT['Account'].isin(account_selected)]
-#     dff = df[df['Date'] == date]
-#     dfff = df[df['Date'] == download_date_list[0]]
-#
-#     pricechg = []
-#     for des in dff['des']:
-#         data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
-#         pricechg.append((data))
-#
-#     dff['pricechg'] = pricechg
-#
-#     fig = px.scatter(dff,
-#                      x='pricechg',
-#                      y='unrealizedPNL',
-#                      size='marketValue',
-#                      hover_name='des')
-#
-#     fig.update_traces(customdata=dff['des'])
-#
-#     fig.update_layout(title='OPT Position',
-#                       xaxis=dict(title='Price Change', gridcolor='white', gridwidth=2),
-#                       yaxis=dict(title='unrealizedPNL', gridcolor='white', gridwidth=2),
-#                       paper_bgcolor='rgb(243, 243, 243)',
-#                       plot_bgcolor='rgb(243, 243, 243)')
-#
-#     return fig
-#
-#
-# @app.callback(
-#     Output('opt-time-series-value', 'figure'),
-#     Input('opt-position', 'hoverData')
-# )
-# def update_opt_timeseries_value(hoverData):
-#     df = Portfolio_OPT
-#     des = hoverData['points'][0]['customdata']
-#     dff = df[df['des'] == des]
-#     column = 'marketValue'
-#     return create_time_series(dff, column)
-#
-#
-# @app.callback(
-#     Output('opt-time-series-position', 'figure'),
-#     Input('opt-position', 'hoverData'),
-# )
-# def update_opt_timeseries_position(hoverData):
-#     df = Portfolio_OPT
-#     des = hoverData['points'][0]['customdata']
-#     dff = df[df['des'] == des]
-#     column = 'position'
-#     return create_time_series(dff, column)
-#
-#
-# @app.callback(
-#     Output('fut-position', 'figure'),
-#     Input('date-slider', 'value'),
-#     Input('account-checklist', 'value')
-# )
-# def update_fut_graph(date_value, account_selected):
-#     date = download_date_list[date_value]
-#     df = Portfolio_FUT[Portfolio_FUT['Account'].isin(account_selected)]
-#     dff = df[df['Date'] == date]
-#     dfff = df[df['Date'] == download_date_list[0]]
-#     print(dff)
-#
-#     pricechg = []
-#     for des in dff['des']:
-#         data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
-#         pricechg.append((data))
-#
-#     dff['pricechg'] = pricechg
-#
-#     fig = px.scatter(dff,
-#                      x='pricechg',
-#                      y='unrealizedPNL',
-#                      size='marketValue',
-#                      hover_name='des')
-#
-#     fig.update_traces(customdata=dff['des'])
-#
-#     fig.update_layout(title='FUT Position',
-#                       xaxis=dict(title='Price Change', gridcolor='white', gridwidth=2),
-#                       yaxis=dict(title='unrealizedPNL', gridcolor='white', gridwidth=2),
-#                       paper_bgcolor='rgb(243, 243, 243)',
-#                       plot_bgcolor='rgb(243, 243, 243)')
-#
-#     return fig
-#
-#
-# @app.callback(
-#     Output('fut-time-series-value', 'figure'),
-#     Input('fut-position', 'hoverData')
-# )
-# def update_fut_timeseries_value(hoverData):
-#     df = Portfolio_FUT
-#     des = hoverData['points'][0]['customdata']
-#     dff = df[df['des'] == des]
-#     column = 'marketValue'
-#     return create_time_series(dff, column)
-#
-#
-# @app.callback(
-#     Output('fut-time-series-position', 'figure'),
-#     Input('fut-position', 'hoverData'),
-# )
-# def update_fut_timeseries_position(hoverData):
-#     df = Portfolio_FUT
-#     des = hoverData['points'][0]['customdata']
-#     dff = df[df['des'] == des]
-#     column = 'position'
-#     return create_time_series(dff, column)
 
 
 if __name__ == "__main__":
