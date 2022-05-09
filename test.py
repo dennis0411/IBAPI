@@ -227,7 +227,7 @@ app.layout = html.Div([
                         id='date-slider',
                         value=[0, len(download_date_list) - 1],
                         marks={i: download_date_list[i] for i in range(len(download_date_list))}),
-        style={'width': '45%', 'padding': 10, 'border': 10, 'margin': 10})
+        style={'width': '80%', 'padding': 10, 'border': 10, 'margin': 10})
 ]
 )
 
@@ -352,7 +352,6 @@ def update_account_table(value):
             else:
                 data.loc[data[
                              'Account'] == account, f'{column}-%'] = f"{float(data.loc[data['Account'] == account, column].item()) / float(data.loc[data['Account'] == account, 'NetLiquidation'].item()):.2%}"
-
 
     data = data.loc[:, ['Account', 'NetLiquidation', 'chg_1d', 'chg_5d', 'chg_10d', 'TotalCashValue-%', 'StockValue-%', 'BondValue-%', 'OPTValue-%', 'FUTValue-%']]
     print(data)
