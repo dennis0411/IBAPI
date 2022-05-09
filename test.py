@@ -360,7 +360,6 @@ def update_account_table(value):
                              'Account'] == account, f'{column}-%'] = f"{float(data.loc[data['Account'] == account, column].item()) / float(data.loc[data['Account'] == account, 'NetLiquidation'].item()):.2%}"
 
     data = data.loc[:, ['Account', 'NetLiquidation', 'chg_1d', 'chg_5d', 'chg_10d', 'TotalCashValue-%', 'StockValue-%', 'BondValue-%', 'OPTValue-%', 'FUTValue-%']]
-    print(data)
 
     columns = [{'name': i, 'id': i, 'deletable': False, 'selectable': True, 'type': 'numeric', 'format': Format(precision=2, scheme=Scheme.fixed)} for i in data.columns]
     data = data.to_dict('records')
@@ -368,38 +367,55 @@ def update_account_table(value):
     return dash_table.DataTable(data=data,
                                 columns=columns,
                                 style_data={
-                                    'color': 'black',
+                                    'color': '1C1D1D',
                                     'backgroundColor': 'white'
+                                },
+                                style_cell={
+
                                 },
                                 style_data_conditional=(
                                         [
                                             {
                                                 'if': {'row_index': 'odd'},
-                                                'backgroundColor': 'rgb(220, 220, 220)'
+                                                'backgroundColor': '#F2F2F2'
                                             }
                                         ] +
                                         [
                                             {
                                                 'if': {'filter_query': '{{{}}} contains {}'.format(col, '+'),
                                                        'column_id': col},
-                                                'color': 'white',
-                                                'backgroundColor': 'rgb(0, 88, 92)'
+                                                'color': 'rgb(61, 152, 82)',
+                                                'fontWeight': 'bold'
                                             } for col in ['chg_1d', 'chg_5d', 'chg_10d']
                                         ] +
                                         [
                                             {
                                                 'if': {'filter_query': '{{{}}} contains {}'.format(col, '-'),
                                                        'column_id': col},
-                                                'color': 'white',
-                                                'backgroundColor': 'rgb(191, 58, 51)'
+                                                'color': 'rgb(191, 58, 51)',
+                                                'fontWeight': 'bold'
                                             } for col in ['chg_1d', 'chg_5d', 'chg_10d']
                                         ]
                                 ),
                                 style_header={
-                                    'backgroundColor': 'rgb(210, 210, 210)',
-                                    'color': 'black',
+                                    'backgroundColor': 'rgb(24, 88, 151)',
+                                    'color': '#F2F2F2',
                                     'fontWeight': 'bold'
                                 },
+                                tooltip_data=[
+                                    {
+                                        column: {'value': f"{row['Account']} {column}:{value}",
+                                                 'type': 'markdown'}
+                                        for column, value in row.items()
+                                    } for row in data
+                                ],
+                                css=[{
+                                    'selector': '.dash-table-tooltip',
+                                    'rule': 'background-color: grey; font-family: monospace; color: white'
+                                }],
+                                tooltip_delay=0,
+                                tooltip_duration=None,
+                                style_as_list_view=True,
                                 editable=False,
                                 row_deletable=False,
                                 filter_action='native',
