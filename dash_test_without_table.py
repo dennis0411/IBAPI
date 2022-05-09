@@ -382,14 +382,16 @@ def update_account_table(value):
                                             {
                                                 'if': {'filter_query': '{{{}}} contains {}'.format(col, '+'),
                                                        'column_id': col},
-                                                'color': 'rgb(0, 88, 92)'
+                                                'color': 'white',
+                                                'backgroundColor': 'rgb(0, 88, 92)'
                                             } for col in ['chg_1d', 'chg_5d', 'chg_10d']
                                         ] +
                                         [
                                             {
                                                 'if': {'filter_query': '{{{}}} contains {}'.format(col, '-'),
                                                        'column_id': col},
-                                                'color': 'rgb(191, 58, 51)'
+                                                'color': 'white',
+                                                'backgroundColor': 'rgb(191, 58, 51)'
                                             } for col in ['chg_1d', 'chg_5d', 'chg_10d']
                                         ]
                                 ),
