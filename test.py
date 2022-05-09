@@ -314,6 +314,8 @@ def update_account_table(value):
         if account in data_1['Account'].tolist():
             if float(data_1.loc[data_1['Account'] == account, 'NetLiquidation'].item()) == 0:
                 pricechg = 0
+            elif float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_1.loc[data_1["Account"] == account, "NetLiquidation"].item()) - 1 >= 0:
+                pricechg = f'+{float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_1.loc[data_1["Account"] == account, "NetLiquidation"].item()) - 1:.2%}'
             else:
                 pricechg = f'{float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_1.loc[data_1["Account"] == account, "NetLiquidation"].item()) - 1:.2%}'
         else:
@@ -326,6 +328,8 @@ def update_account_table(value):
         if account in data_5['Account'].tolist():
             if float(data_5.loc[data_5['Account'] == account, 'NetLiquidation'].item()) == 0:
                 pricechg = 0
+            elif float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_5.loc[data_5["Account"] == account, "NetLiquidation"].item()) - 1 >= 0:
+                pricechg = f'+{float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_5.loc[data_5["Account"] == account, "NetLiquidation"].item()) - 1:.2%}'
             else:
                 pricechg = f'{float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_5.loc[data_5["Account"] == account, "NetLiquidation"].item()) - 1:.2%}'
         else:
@@ -338,6 +342,8 @@ def update_account_table(value):
         if account in data_10['Account'].tolist():
             if float(data_10.loc[data_10['Account'] == account, 'NetLiquidation'].item()) == 0:
                 pricechg = 0
+            elif float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_10.loc[data_10["Account"] == account, "NetLiquidation"].item()) - 1 >= 0:
+                pricechg = f'+{float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_10.loc[data_10["Account"] == account, "NetLiquidation"].item()) - 1:.2%}'
             else:
                 pricechg = f'{float(data.loc[data["Account"] == account, "NetLiquidation"].item()) / float(data_10.loc[data_10["Account"] == account, "NetLiquidation"].item()) - 1:.2%}'
         else:
@@ -361,6 +367,37 @@ def update_account_table(value):
 
     return dash_table.DataTable(data=data,
                                 columns=columns,
+                                style_data={
+                                    'color': 'black',
+                                    'backgroundColor': 'white'
+                                },
+                                style_data_conditional=(
+                                        [
+                                            {
+                                                'if': {'row_index': 'odd'},
+                                                'backgroundColor': 'rgb(220, 220, 220)'
+                                            }
+                                        ] +
+                                        [
+                                            {
+                                                'if': {'filter_query': '{{{}}} contains {}'.format(col, '+'),
+                                                       'column_id': col},
+                                                'color': 'rgb(0, 88, 92)'
+                                            } for col in ['chg_1d', 'chg_5d', 'chg_10d']
+                                        ] +
+                                        [
+                                            {
+                                                'if': {'filter_query': '{{{}}} contains {}'.format(col, '-'),
+                                                       'column_id': col},
+                                                'color': 'rgb(191, 58, 51)'
+                                            } for col in ['chg_1d', 'chg_5d', 'chg_10d']
+                                        ]
+                                ),
+                                style_header={
+                                    'backgroundColor': 'rgb(210, 210, 210)',
+                                    'color': 'black',
+                                    'fontWeight': 'bold'
+                                },
                                 editable=False,
                                 row_deletable=False,
                                 filter_action='native',
