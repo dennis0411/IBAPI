@@ -354,12 +354,12 @@ def update_account_table(value):
     for column in ['TotalCashValue', 'StockValue', 'BondValue', 'OPTValue', 'FUTValue']:
         for account in data['Account']:
             if float(data.loc[data['Account'] == account, 'NetLiquidation'].item()) == 0:
-                data.loc[data['Account'] == account, f'{column}-%'] = 0
+                data.loc[data['Account'] == account, f'{column}%'] = 0
             else:
                 data.loc[data[
-                             'Account'] == account, f'{column}-%'] = f"{float(data.loc[data['Account'] == account, column].item()) / float(data.loc[data['Account'] == account, 'NetLiquidation'].item()):.2%}"
+                             'Account'] == account, f'{column}%'] = f"{float(data.loc[data['Account'] == account, column].item()) / float(data.loc[data['Account'] == account, 'NetLiquidation'].item()):.2%}"
 
-    data = data.loc[:, ['Account', 'NetLiquidation', 'chg_1d', 'chg_5d', 'chg_10d', 'TotalCashValue-%', 'StockValue-%', 'BondValue-%', 'OPTValue-%', 'FUTValue-%']]
+    data = data.loc[:, ['Account', 'NetLiquidation', 'chg_1d', 'chg_5d', 'chg_10d', 'TotalCashValue%', 'StockValue%', 'BondValue%', 'OPTValue%', 'FUTValue%']]
 
     columns = [{'name': i, 'id': i, 'deletable': False, 'selectable': True, 'type': 'numeric', 'format': Format(precision=2, scheme=Scheme.fixed)} for i in data.columns]
     data = data.to_dict('records')
@@ -404,7 +404,7 @@ def update_account_table(value):
                                 },
                                 tooltip_data=[
                                     {
-                                        column: {'value': f"{row['Account']} {column}:{value}",
+                                        column: {'value': f"{row['Account']}  {column}: {value}",
                                                  'type': 'markdown'}
                                         for column, value in row.items()
                                     } for row in data
@@ -424,7 +424,6 @@ def update_account_table(value):
                                 page_action='native',
                                 page_size=20,
                                 page_current=0)
-
 
 @app.callback(
     Output('stock-position', 'figure'),
