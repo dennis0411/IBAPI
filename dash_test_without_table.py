@@ -225,7 +225,7 @@ app.layout = html.Div([
                         max=len(download_date_list) - 1,
                         step=1,
                         id='date-slider',
-                        value=[0, len(download_date_list) - 1],
+                        value=[len(download_date_list) - 3, len(download_date_list) - 1],
                         marks={i: download_date_list[i] for i in range(len(download_date_list))}),
         style={'width': '80%', 'padding': 10, 'border': 10, 'margin': 10})
 ]
@@ -425,6 +425,7 @@ def update_account_table(value):
                                 page_size=20,
                                 page_current=0)
 
+
 @app.callback(
     Output('stock-position', 'figure'),
     [Input('date-slider', 'value')],
@@ -437,9 +438,16 @@ def update_stock_graph(date_value, account_selected):
     dff = df[df['Date'] == date0]
     dfff = df[df['Date'] == date1]
 
+    duplicated = dff[dff['des'].duplicated()]['des'].item()
+
     pricechg = []
     for des in dff['des']:
-        data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
+        if des == duplicated:
+            data = 0
+        elif des in dfff['des'].tolist():
+            data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1
+        else:
+            data = 0
         pricechg.append((round(data, 4)))
 
     dfff = dff.copy()
@@ -527,9 +535,16 @@ def update_bond_graph(date_value, account_selected):
     dff = df[df['Date'] == date0]
     dfff = df[df['Date'] == date1]
 
+    duplicated = dff[dff['des'].duplicated()]['des'].item()
+
     pricechg = []
     for des in dff['des']:
-        data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1 if des in dfff['des'].tolist() else 0
+        if des == duplicated:
+            data = 0
+        elif des in dfff['des'].tolist():
+            data = dff.loc[dff['des'] == des, 'marketPrice'].item() / dfff.loc[dfff['des'] == des, 'marketPrice'].item() - 1
+        else:
+            data = 0
         pricechg.append((round(data, 4)))
 
     dfff = dff.copy()
@@ -575,55 +590,6 @@ def update_bond_timeseries_position(hoverData):
     dff = df[df['des'] == des]
     column = 'position'
     return create_time_series(dff, column)
-
-
-@app.callback(
-    Output('bond-maturity-position', 'figure'),
-    Input('date-slider', 'value'),
-    Input('account-checklist', 'value')
-)
-def update_bond_maturity_graph(date_value, account_selected):
-    date = download_date_list[date_value[1]]
-    df = Portfolio_BOND[Portfolio_BOND['Account'].isin(account_selected)]
-    dff = df[df['Date'] == date]
-    year = datetime.date.today().strftime('%Y')
-
-    maturity = []
-    for index, row in dff.iterrows():
-        maturity_period = float(row['lastTradeDate'][:4]) - float(year)
-        if maturity_period <= 5:
-            maturity.append(('1~5y'))
-        elif maturity_period > 5 and maturity_period <= 10:
-            maturity.append(('5~10y'))
-        elif maturity_period > 10:
-            maturity.append(('10y+'))
-        else:
-            maturity.append(('None'))
-
-    dff['maturity'] = maturity
-
-    data = []
-    for account in dff['Account'].unique():
-        for maturity in ['1~5y', '5~10y', '10y+']:
-            position = dff.loc[(dff['Account'] == account) & (dff['maturity'] == maturity), 'position'].sum()
-            data.append((account, maturity, position))
-
-    dfff = pd.DataFrame(data, columns=['Account', 'maturity', 'position'])
-    dfff.round(2)
-
-    fig = px.bar(dfff,
-                 x='maturity',
-                 y='position',
-                 color='Account'
-                 )
-
-    fig.update_layout(title='Bond Position Maturity',
-                      xaxis=dict(title='maturity', gridcolor='white', gridwidth=2),
-                      yaxis=dict(title='position', gridcolor='white', gridwidth=2),
-                      paper_bgcolor='rgb(243, 243, 243)',
-                      plot_bgcolor='rgb(243, 243, 243)')
-
-    return fig
 
 
 if __name__ == "__main__":
