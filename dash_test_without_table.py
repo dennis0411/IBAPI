@@ -438,7 +438,12 @@ def update_stock_graph(date_value, account_selected):
     dff = df[df['Date'] == date0]
     dfff = df[df['Date'] == date1]
 
-    duplicated = dff[dff['des'].duplicated()]['des'].item()
+    duplicated = []
+
+    if dff[dff['des'].duplicated()]['des'].empty:
+        duplicated = []
+    else:
+        duplicated = dff[dff['des'].duplicated()]['des'].item()
 
     pricechg = []
     for des in dff['des']:
@@ -535,7 +540,12 @@ def update_bond_graph(date_value, account_selected):
     dff = df[df['Date'] == date0]
     dfff = df[df['Date'] == date1]
 
-    duplicated = dff[dff['des'].duplicated()]['des'].item()
+    duplicated = []
+
+    if dff[dff['des'].duplicated()]['des'].empty:
+        duplicated = []
+    else:
+        duplicated = dff[dff['des'].duplicated()]['des'].item()
 
     pricechg = []
     for des in dff['des']:
